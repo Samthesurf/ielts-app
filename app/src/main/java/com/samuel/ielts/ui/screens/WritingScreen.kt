@@ -15,21 +15,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +48,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.samuel.ielts.data.Attempt
@@ -270,6 +275,7 @@ private fun MarkResult.toCriterionScores(taskType: WritingTaskType): List<Criter
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WritingScreen(
     testLabel: String,
@@ -289,6 +295,8 @@ fun WritingScreen(
     var activeTask by rememberSaveable { mutableStateOf(WritingTaskType.TASK_1) }
     var task1Draft by rememberSaveable(task1Data.prompt) { mutableStateOf(task1Data.initialDraft) }
     var task2Draft by rememberSaveable(task2Data.prompt) { mutableStateOf(task2Data.initialDraft) }
+    var promptExpanded by rememberSaveable(activeTask.name) { mutableStateOf(false) }
+    var showScoresSheet by rememberSaveable { mutableStateOf(false) }
     var showScoreDetails by rememberSaveable(activeTask.name) { mutableStateOf(false) }
     var showInlineComments by rememberSaveable(activeTask.name) { mutableStateOf(false) }
     var showBand75Rewrite by rememberSaveable(activeTask.name) { mutableStateOf(false) }
@@ -375,6 +383,7 @@ fun WritingScreen(
                         createdAt = System.currentTimeMillis()
                     )
                 )
+                showScoresSheet = true
             } catch (ce: CancellationException) {
                 throw ce
             } catch (e: ParseError) {
@@ -387,161 +396,90 @@ fun WritingScreen(
         }
     }
 
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(IeltsSpacing.CardPadding),
-        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.SectionGap)
-    ) {
-        item {
-            Text(
-                text = "$testLabel Writing",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
+    Column(modifier = modifier.fillMaxSize()) {
+        TabRow(
+            selectedTabIndex = activeTask.ordinal,
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            WritingTaskType.entries.forEach { taskType ->
+                val isSelected = activeTask == taskType
+                Tab(
+                    selected = isSelected,
+                    onClick = {
+                        activeTask = taskType
+                        markError = null
+                    },
+                    text = {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = taskType.shortLabel,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                maxLines = 1
+                            )
+                            if (isSelected) {
+                                Text(
+                                    text = "${taskType.minWords}+ words",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+                )
+            }
         }
 
-        item {
-            OverallWritingBandCard(
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(IeltsSpacing.Md),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
+        ) {
+            PriorWritingScoresCompactCard(
+                testLabel = testLabel,
                 task1Band = task1Band,
                 task2Band = task2Band,
                 overallBand = overallWritingBand,
-                isMarking = isMarking,
-                onMarkDraft = { triggerMark() }
+                onClick = { showScoresSheet = true }
             )
-        }
 
-        item {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                WritingTaskType.entries.forEach { taskType ->
-                    FilterChip(
-                        selected = activeTask == taskType,
-                        onClick = {
-                            activeTask = taskType
-                            markError = null
-                        },
-                        label = {
-                            Text("${taskType.shortLabel} (${taskType.minWords}+ words)")
-                        }
-                    )
-                }
-            }
-        }
+            PromptDisclosureCard(
+                prompt = currentTaskData.prompt,
+                expanded = promptExpanded,
+                onToggle = { promptExpanded = !promptExpanded }
+            )
 
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, NeutralBorder)
-            ) {
-                Column(
-                    modifier = Modifier.padding(IeltsSpacing.CardPadding),
-                    verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
-                    ) {
-                        Icon(
-                            imageVector = if (currentTaskData.taskType == WritingTaskType.TASK_1) {
-                                IeltsIcons.WritingTask1
-                            } else {
-                                IeltsIcons.WritingTask2
-                            },
-                            contentDescription = currentTaskData.taskType.shortLabel,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(IeltsSpacing.FeatureIcon)
-                        )
-                        Text(
-                            text = currentTaskData.taskType.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Text(
-                        text = currentTaskData.prompt,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    OutlinedTextField(
-                        value = currentDraft,
-                        onValueChange = { updated ->
-                            if (activeTask == WritingTaskType.TASK_1) {
-                                task1Draft = updated
-                            } else {
-                                task2Draft = updated
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp),
-                        label = { Text("Your ${currentTaskData.taskType.shortLabel} draft") }
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "$wordCount / $minWords words",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (underWordWarning) WarningAmber else SuccessGreen
-                        )
-                        // Word-count warnings are advisory only and never disable submission.
-                        Button(
-                            onClick = { triggerMark() },
-                            enabled = !isMarking,
-                            modifier = Modifier.height(IeltsSpacing.TouchTarget)
-                        ) {
-                            if (isMarking) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
-                                Spacer(modifier = Modifier.width(IeltsSpacing.Sm))
-                                Text("Marking...")
-                            } else {
-                                Text("Review Draft")
-                            }
-                        }
-                    }
-
-                    if (underWordWarning) {
-                        WordCountWarningBanner(
-                            wordCount = wordCount,
-                            minWords = minWords,
-                            firstCriterionName = activeTask.firstCriterionName
-                        )
+            OutlinedTextField(
+                value = currentDraft,
+                onValueChange = { updated ->
+                    if (activeTask == WritingTaskType.TASK_1) {
+                        task1Draft = updated
                     } else {
-                        Surface(
-                            color = SuccessGreenBg,
-                            shape = MaterialTheme.shapes.medium,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "Word target met ($wordCount words).",
-                                modifier = Modifier.padding(horizontal = IeltsSpacing.ItemGap, vertical = IeltsSpacing.Sm),
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium,
-                                color = SuccessGreen
-                            )
-                        }
+                        task2Draft = updated
                     }
-                }
-            }
-        }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                label = { Text("${currentTaskData.taskType.shortLabel} draft") }
+            )
 
-        val currentError = markError
-        if (currentError != null) {
-            item {
+            if (underWordWarning) {
+                WordCountWarningStrip(
+                    wordCount = wordCount,
+                    minWords = minWords,
+                    firstCriterionName = activeTask.firstCriterionName
+                )
+            }
+
+            val currentError = markError
+            if (currentError != null) {
                 WritingMarkErrorCard(
                     message = currentError,
                     onRetry = { triggerMark() },
@@ -550,57 +488,148 @@ fun WritingScreen(
             }
         }
 
-        if (!hasCurrentMark) {
-            item {
-                UnmarkedFeedbackCard(
-                    taskLabel = currentTaskData.taskType.shortLabel,
-                    isMarking = isMarking,
-                    onReviewDraft = { triggerMark() }
-                )
-            }
-        } else {
-            item {
-                FourScoreBarsCard(
-                    taskType = currentTaskData.taskType,
-                    scores = displayScores,
-                    taskBand = IeltsScoring.calculateTaskBand(displayScores),
-                    showDetails = showScoreDetails,
-                    onToggleDetails = { showScoreDetails = !showScoreDetails }
-                )
-            }
+        HorizontalDivider(color = NeutralBorder)
 
-            if (displayComments.isNotEmpty()) {
-                item {
-                    InlineCommentsCard(
-                        draftText = currentDraft,
-                        comments = displayComments,
-                        expanded = showInlineComments,
-                        onToggle = { showInlineComments = !showInlineComments }
-                    )
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(IeltsSpacing.Md),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "$wordCount/$minWords",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (underWordWarning) WarningAmber else SuccessGreen
+                )
+
+                Spacer(modifier = Modifier.width(IeltsSpacing.Md))
+
+                // Word-count warnings are advisory only and never disable submission.
+                Button(
+                    onClick = { triggerMark() },
+                    enabled = !isMarking,
+                    modifier = Modifier.height(IeltsSpacing.TouchTarget)
+                ) {
+                    if (isMarking) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(modifier = Modifier.width(IeltsSpacing.Sm))
+                        Text("Marking...")
+                    } else {
+                        Text("Review")
+                    }
                 }
             }
+        }
+    }
 
-            if (displayRewrite75.isNotBlank()) {
-                item {
-                    CollapsibleModelCard(
-                        title = "Band 7.5 Rewrite",
-                        bodyText = displayRewrite75,
-                        expanded = showBand75Rewrite,
-                        onToggle = { showBand75Rewrite = !showBand75Rewrite },
-                        accentBorder = NeutralBorder
+    if (showScoresSheet) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { showScoresSheet = false },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.background
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = IeltsSpacing.Md),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "$testLabel Writing Scores",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
+                    IconButton(
+                        onClick = { showScoresSheet = false },
+                        modifier = Modifier.size(IeltsSpacing.TouchTarget)
+                    ) {
+                        Icon(
+                            imageVector = IeltsIcons.Close,
+                            contentDescription = "Close scores",
+                            modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                        )
+                    }
                 }
-            }
 
-            if (displayModel8.isNotBlank()) {
-                item {
-                    CollapsibleModelCard(
-                        title = "Band 8 Model Answer",
-                        bodyText = displayModel8,
-                        expanded = showBand8Model,
-                        onToggle = { showBand8Model = !showBand8Model },
-                        accentBorder = BrandTeal.copy(alpha = 0.4f)
-                    )
+                HorizontalDivider(color = NeutralBorder)
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(IeltsSpacing.Md),
+                    verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
+                ) {
+                    item {
+                        OverallWritingBandCard(
+                            task1Band = task1Band,
+                            task2Band = task2Band,
+                            overallBand = overallWritingBand,
+                            isMarking = isMarking,
+                            onMarkDraft = {
+                                showScoresSheet = false
+                                triggerMark()
+                            }
+                        )
+                    }
+
+                    if (hasCurrentMark) {
+                        item {
+                            FourScoreBarsCard(
+                                taskType = currentTaskData.taskType,
+                                scores = displayScores,
+                                taskBand = IeltsScoring.calculateTaskBand(displayScores),
+                                showDetails = showScoreDetails,
+                                onToggleDetails = { showScoreDetails = !showScoreDetails }
+                            )
+                        }
+
+                        if (displayComments.isNotEmpty()) {
+                            item {
+                                InlineCommentsCard(
+                                    draftText = currentDraft,
+                                    comments = displayComments,
+                                    expanded = showInlineComments,
+                                    onToggle = { showInlineComments = !showInlineComments }
+                                )
+                            }
+                        }
+
+                        if (displayRewrite75.isNotBlank()) {
+                            item {
+                                CollapsibleModelCard(
+                                    title = "Band 7.5 Rewrite",
+                                    bodyText = displayRewrite75,
+                                    expanded = showBand75Rewrite,
+                                    onToggle = { showBand75Rewrite = !showBand75Rewrite },
+                                    accentBorder = NeutralBorder
+                                )
+                            }
+                        }
+
+                        if (displayModel8.isNotBlank()) {
+                            item {
+                                CollapsibleModelCard(
+                                    title = "Band 8 Model Answer",
+                                    bodyText = displayModel8,
+                                    expanded = showBand8Model,
+                                    onToggle = { showBand8Model = !showBand8Model },
+                                    accentBorder = BrandTeal.copy(alpha = 0.4f)
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -608,13 +637,25 @@ fun WritingScreen(
 }
 
 @Composable
-private fun UnmarkedFeedbackCard(
-    taskLabel: String,
-    isMarking: Boolean,
-    onReviewDraft: () -> Unit
+private fun PriorWritingScoresCompactCard(
+    testLabel: String,
+    task1Band: Double?,
+    task2Band: Double?,
+    overallBand: Double?,
+    onClick: () -> Unit
 ) {
+    val summary = when {
+        overallBand != null -> "Band ${IeltsScoring.formatBand(overallBand)}"
+        task1Band != null -> "Task 1: Band ${IeltsScoring.formatBand(task1Band)}"
+        task2Band != null -> "Task 2: Band ${IeltsScoring.formatBand(task2Band)}"
+        else -> "Not marked yet"
+    }
+    val hasBand = overallBand != null || task1Band != null || task2Band != null
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, NeutralBorder)
@@ -622,31 +663,109 @@ private fun UnmarkedFeedbackCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(IeltsSpacing.CardPadding),
+                .padding(horizontal = IeltsSpacing.Md, vertical = IeltsSpacing.ItemGap),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    text = "$taskLabel Feedback",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    text = "$testLabel Scores",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "Not marked yet",
+                    text = summary,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    fontWeight = if (hasBand) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (hasBand) BrandBlue else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-            OutlinedButton(
-                onClick = onReviewDraft,
-                enabled = !isMarking
-            ) {
-                Text("Review Draft")
-            }
+            Icon(
+                imageVector = IeltsIcons.ChevronRight,
+                contentDescription = "Open scores",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(IeltsSpacing.ActionIcon)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PromptDisclosureCard(
+    prompt: String,
+    expanded: Boolean,
+    onToggle: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, NeutralBorder)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = IeltsSpacing.Md, vertical = IeltsSpacing.ItemGap),
+            horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm),
+            verticalAlignment = Alignment.Top
+        ) {
+            Text(
+                text = prompt,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = if (expanded) Int.MAX_VALUE else 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = if (expanded) IeltsIcons.ExpandLess else IeltsIcons.ExpandMore,
+                contentDescription = if (expanded) "Collapse prompt" else "Expand prompt",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(IeltsSpacing.ActionIcon)
+            )
+        }
+    }
+}
+
+@Composable
+private fun WordCountWarningStrip(
+    wordCount: Int,
+    minWords: Int,
+    firstCriterionName: String
+) {
+    Surface(
+        color = WarningAmberBg,
+        shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(1.dp, WarningAmber.copy(alpha = 0.4f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = IeltsSpacing.ItemGap, vertical = IeltsSpacing.Sm),
+            horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = IeltsIcons.Warning,
+                contentDescription = "Word count warning",
+                tint = WarningAmber,
+                modifier = Modifier.size(IeltsSpacing.FeatureIcon)
+            )
+            Text(
+                text = "Word warning: $wordCount/$minWords words may lower $firstCriterionName.",
+                style = MaterialTheme.typography.bodySmall,
+                color = WarningAmber,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -659,48 +778,33 @@ private fun WritingMarkErrorCard(
 ) {
     Surface(
         color = ErrorRedBg,
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.medium,
         border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.4f)),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier.padding(IeltsSpacing.CardPadding),
-            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
+        Row(
+            modifier = Modifier.padding(horizontal = IeltsSpacing.ItemGap, vertical = IeltsSpacing.Sm),
+            horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap),
-                verticalAlignment = Alignment.Top
-            ) {
-                Icon(
-                    imageVector = IeltsIcons.OfflineWarning,
-                    contentDescription = "Marking error",
-                    tint = ErrorRed,
-                    modifier = Modifier.size(IeltsSpacing.FeatureIcon)
-                )
-                Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
-                    Text(
-                        text = "Could not mark draft",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = ErrorRed
-                    )
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = ErrorRed
-                    )
-                }
-            }
+            Icon(
+                imageVector = IeltsIcons.OfflineWarning,
+                contentDescription = "Marking error",
+                tint = ErrorRed,
+                modifier = Modifier.size(IeltsSpacing.FeatureIcon)
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = ErrorRed,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
             OutlinedButton(
                 onClick = onRetry,
                 enabled = retryEnabled
             ) {
-                Icon(
-                    imageVector = IeltsIcons.ErrorRetry,
-                    contentDescription = "Retry",
-                    modifier = Modifier.size(IeltsSpacing.SmallIcon)
-                )
-                Spacer(modifier = Modifier.width(IeltsSpacing.Xs))
                 Text("Retry")
             }
         }
@@ -722,7 +826,7 @@ private fun OverallWritingBandCard(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.22f))
     ) {
         Column(
-            modifier = Modifier.padding(IeltsSpacing.CardPadding),
+            modifier = Modifier.padding(IeltsSpacing.Md),
             verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
         ) {
             if (task1Band == null && task2Band == null) {
@@ -736,13 +840,8 @@ private fun OverallWritingBandCard(
                         verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
                     ) {
                         Text(
-                            text = "Overall Writing Band",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
                             text = "Not marked yet",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
@@ -751,12 +850,13 @@ private fun OverallWritingBandCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                    Spacer(modifier = Modifier.width(IeltsSpacing.Sm))
                     Button(
                         onClick = onMarkDraft,
                         enabled = !isMarking,
                         modifier = Modifier.height(IeltsSpacing.TouchTarget)
                     ) {
-                        Text("Mark")
+                        Text("Review")
                     }
                 }
             } else {
@@ -785,7 +885,7 @@ private fun OverallWritingBandCard(
                         style = if (overallBand != null) {
                             MaterialTheme.typography.headlineMedium
                         } else {
-                            MaterialTheme.typography.titleSmall
+                            MaterialTheme.typography.labelLarge
                         },
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -813,46 +913,6 @@ private fun OverallWritingBandCard(
 }
 
 @Composable
-private fun WordCountWarningBanner(
-    wordCount: Int,
-    minWords: Int,
-    firstCriterionName: String
-) {
-    Surface(
-        color = WarningAmberBg,
-        shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(1.dp, WarningAmber.copy(alpha = 0.4f)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(IeltsSpacing.ItemGap),
-            horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap),
-            verticalAlignment = Alignment.Top
-        ) {
-            Icon(
-                imageVector = IeltsIcons.Warning,
-                contentDescription = "Word count warning",
-                tint = WarningAmber,
-                modifier = Modifier.size(IeltsSpacing.FeatureIcon)
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = "Word count warning ($wordCount / $minWords words)",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = WarningAmber
-                )
-                Text(
-                    text = "You can still submit. Under $minWords words may lower $firstCriterionName.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = WarningAmber
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun FourScoreBarsCard(
     taskType: WritingTaskType,
     scores: List<CriterionScore>,
@@ -867,8 +927,8 @@ private fun FourScoreBarsCard(
         border = BorderStroke(1.dp, NeutralBorder)
     ) {
         Column(
-            modifier = Modifier.padding(IeltsSpacing.CardPadding),
-            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
+            modifier = Modifier.padding(IeltsSpacing.Md),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -920,7 +980,7 @@ private fun FourScoreBarsCard(
                         progress = { (score.band / 9.0).toFloat().coerceIn(0f, 1f) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(10.dp),
+                            .height(8.dp),
                         trackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                     AnimatedVisibility(visible = showDetails) {
@@ -956,8 +1016,8 @@ private fun InlineCommentsCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onToggle)
-                .padding(IeltsSpacing.CardPadding),
-            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
+                .padding(IeltsSpacing.Md),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1120,8 +1180,8 @@ private fun CollapsibleModelCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onToggle)
-                .padding(IeltsSpacing.CardPadding),
-            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
+                .padding(IeltsSpacing.Md),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

@@ -2,6 +2,7 @@ package com.samuel.ielts.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,13 +36,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.samuel.ielts.model.BookProgressSummary
 import com.samuel.ielts.model.IeltsScoring
+import com.samuel.ielts.model.IeltsSkill
 import com.samuel.ielts.model.NextStepCardData
 import com.samuel.ielts.model.QuestionTypeAccuracy
 import com.samuel.ielts.model.QuestionTypeCategory
@@ -49,8 +57,8 @@ import com.samuel.ielts.model.SkillProgress
 import com.samuel.ielts.model.StudyProgressSnapshot
 import com.samuel.ielts.model.TestProgressRecord
 import com.samuel.ielts.ui.components.IeltsIcons
-import com.samuel.ielts.ui.components.NextStepCardsSection
-import com.samuel.ielts.ui.components.StreakFlameTile
+import com.samuel.ielts.ui.components.NextStepSingleCard
+import com.samuel.ielts.ui.components.StreakFlameCountBadge
 import com.samuel.ielts.ui.theme.IeltsSpacing
 
 internal fun plainQuestionTypeName(category: QuestionTypeCategory): String = when (category) {
@@ -84,252 +92,132 @@ fun ProgressScreen(
         IeltsScoring.roundToHalfBand(activeSkillBands.map { it.band }.average())
     }
     val weakestType = IeltsScoring.findWeakestQuestionType(questionTypeStats)
-    val totalCompleted = bookSummaries.sumOf { it.completedSections }
-    val totalAvailable = bookSummaries.sumOf { it.availableSections }
+    val bandBySkill = rememberSkillBandMap(skillProgress)
+
+    var showDetails by rememberSaveable { mutableStateOf(false) }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(IeltsSpacing.CardPadding),
+        contentPadding = PaddingValues(IeltsSpacing.Md),
         verticalArrangement = Arrangement.spacedBy(IeltsSpacing.SectionGap)
     ) {
         item {
-            Text(
-                text = "Progress",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Progress",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                StreakFlameCountBadge(streakDays = streakSnapshot.currentStreakDays)
+            }
         }
 
         item {
-            OverallProgressSummaryCard(
+            OverallBandRingCard(
                 overallBand = overallBand,
-                bestOverallBand = streakSnapshot.bestOverallBand,
                 targetBand = targetBand,
-                completedSections = totalCompleted,
-                availableSections = totalAvailable,
-                weakestType = weakestType,
                 onStartPractice = onStartPractice
             )
         }
 
         item {
-            StreakFlameTile(
-                snapshot = streakSnapshot,
-                compact = true
+            FourSkillMiniRingsCard(
+                bandBySkill = bandBySkill,
+                targetBand = targetBand
             )
         }
 
-        if (nextSteps.isNotEmpty()) {
+        if (weakestType != null) {
             item {
-                NextStepCardsSection(
-                    title = "Next Step",
-                    steps = nextSteps,
-                    onSelectStep = onSelectNextStep
-                )
-            }
-        }
-
-        item {
-            CollapsibleProgressCard(
-                key = "skills",
-                title = "Skills",
-                summary = if (skillProgress.isEmpty()) {
-                    "Not marked yet"
-                } else {
-                    "${skillProgress.size} skills marked"
-                }
-            ) {
-                HorizontalBarsContent(
-                    items = skillProgress,
-                    barColor = BrandBlue,
-                    ctaLabel = "Start Quiz",
-                    onCtaClick = onOpenQuiz
-                )
-            }
-        }
-
-        item {
-            val hasQuestionData = questionTypeStats.any { it.total > 0 }
-            CollapsibleProgressCard(
-                key = "question_types",
-                title = "Question Types",
-                summary = when {
-                    !hasQuestionData -> "Not marked yet"
-                    weakestType != null -> "Focus: ${plainQuestionTypeName(weakestType.category)}"
-                    else -> "Accuracy tracked"
-                }
-            ) {
-                QuestionTypeAccuracyContent(
-                    stats = questionTypeStats,
+                WeakestTypeChip(
                     weakestType = weakestType,
-                    onStartQuiz = onOpenQuiz
+                    onClick = onOpenQuiz
                 )
             }
         }
 
-        item {
-            CollapsibleProgressCard(
-                key = "writing_criteria",
-                title = "Writing Criteria",
-                summary = if (writingCriteria.isEmpty()) {
-                    "Not marked yet"
-                } else {
-                    "4 criteria tracked"
-                }
-            ) {
-                HorizontalBarsContent(
-                    items = writingCriteria,
-                    barColor = BrandTeal,
-                    ctaLabel = "Open Writing",
-                    onCtaClick = onOpenWriting
-                )
-            }
-        }
-
-        if (bookSummaries.isNotEmpty()) {
+        val topNextStep = nextSteps.firstOrNull()
+        if (topNextStep != null) {
             item {
-                CollapsibleProgressCard(
-                    key = "books",
-                    title = "Books",
-                    summary = if (totalCompleted == 0) {
-                        "Not marked yet"
-                    } else {
-                        "$totalCompleted of $totalAvailable done"
-                    }
-                ) {
-                    AllBooksAggregationContent(bookSummaries = bookSummaries)
-                }
+                NextStepSingleCard(
+                    step = topNextStep,
+                    onStart = { onSelectNextStep(topNextStep) }
+                )
             }
         }
 
         item {
-            CollapsibleProgressCard(
-                key = "recent_tests",
-                title = "Recent Tests",
-                summary = if (recentTests.isEmpty()) {
-                    "Not marked yet"
-                } else {
-                    "${recentTests.size} recorded"
-                }
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, NeutralBorder)
             ) {
-                RecentTestsBarsContent(
-                    records = recentTests,
-                    onOpenLibrary = onOpenLibrary
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun OverallProgressSummaryCard(
-    overallBand: Double?,
-    bestOverallBand: Double,
-    targetBand: Double,
-    completedSections: Int,
-    availableSections: Int,
-    weakestType: QuestionTypeAccuracy?,
-    onStartPractice: () -> Unit
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        color = BrandBlueSoft.copy(alpha = 0.5f),
-        border = BorderStroke(1.dp, BrandBlue.copy(alpha = 0.22f))
-    ) {
-        Column(
-            modifier = Modifier.padding(IeltsSpacing.CardPadding),
-            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
-        ) {
-            if (overallBand == null) {
-                Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
-                    Text(
-                        text = "Overall Band",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Not marked yet",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "Target Band ${IeltsScoring.formatBand(targetBand)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Button(
-                    onClick = onStartPractice,
-                    modifier = Modifier.height(IeltsSpacing.TouchTarget)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showDetails = !showDetails }
+                        .padding(IeltsSpacing.Md),
+                    verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
                 ) {
-                    Text("Start Practice")
-                }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
-                    ) {
-                        Text(
-                            text = "Overall Band",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Target ${IeltsScoring.formatBand(targetBand)} | $completedSections of $availableSections done",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Text(
-                        text = IeltsScoring.formatBand(overallBand),
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = BrandBlue
-                    )
-                }
-
-                if (bestOverallBand > 0.0 || weakestType != null) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (bestOverallBand > 0.0) {
-                            Surface(
-                                color = Color.White,
-                                shape = MaterialTheme.shapes.small,
-                                border = BorderStroke(1.dp, NeutralBorder)
-                            ) {
-                                Text(
-                                    text = "Best ${IeltsScoring.formatBand(bestOverallBand)}",
-                                    modifier = Modifier.padding(horizontal = IeltsSpacing.Sm, vertical = IeltsSpacing.Xs),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = BrandTeal
+                        Text(
+                            text = "Details",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Icon(
+                            imageVector = if (showDetails) IeltsIcons.ExpandLess else IeltsIcons.ExpandMore,
+                            contentDescription = if (showDetails) "Collapse Details" else "Expand Details",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                        )
+                    }
+
+                    AnimatedVisibility(visible = showDetails) {
+                        Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)) {
+                            HorizontalDivider(color = NeutralBorder)
+
+                            DetailVisualSection(title = "Writing Criteria") {
+                                HorizontalBarsContent(
+                                    items = writingCriteria,
+                                    barColor = BrandTeal,
+                                    ctaLabel = "Open Writing",
+                                    onCtaClick = onOpenWriting
                                 )
                             }
-                        }
-                        if (weakestType != null) {
-                            Surface(
-                                color = WarningAmberBg,
-                                shape = MaterialTheme.shapes.small,
-                                border = BorderStroke(1.dp, WarningAmber.copy(alpha = 0.35f))
-                            ) {
-                                Text(
-                                    text = "Focus: ${plainQuestionTypeName(weakestType.category)} (${weakestType.accuracyPercent}%)",
-                                    modifier = Modifier.padding(horizontal = IeltsSpacing.Sm, vertical = IeltsSpacing.Xs),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = WarningAmber,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+
+                            HorizontalDivider(color = NeutralBorder)
+
+                            DetailVisualSection(title = "Question Types") {
+                                QuestionTypeAccuracyContent(
+                                    stats = questionTypeStats,
+                                    weakestType = weakestType,
+                                    onStartQuiz = onOpenQuiz
+                                )
+                            }
+
+                            if (bookSummaries.isNotEmpty()) {
+                                HorizontalDivider(color = NeutralBorder)
+                                DetailVisualSection(title = "Books") {
+                                    BooksBarsContent(bookSummaries = bookSummaries)
+                                }
+                            }
+
+                            HorizontalDivider(color = NeutralBorder)
+
+                            DetailVisualSection(title = "Recent Tests") {
+                                RecentTestsBarsContent(
+                                    records = recentTests,
+                                    onOpenLibrary = onOpenLibrary
                                 )
                             }
                         }
@@ -340,15 +228,69 @@ private fun OverallProgressSummaryCard(
     }
 }
 
-@Composable
-private fun CollapsibleProgressCard(
-    key: String,
-    title: String,
-    summary: String,
-    content: @Composable () -> Unit
-) {
-    var expanded by rememberSaveable(key) { mutableStateOf(false) }
+private fun rememberSkillBandMap(skillProgress: List<SkillProgress>): Map<IeltsSkill, Double?> {
+    val byLabel = skillProgress.associateBy { it.label }
+    return mapOf(
+        IeltsSkill.LISTENING to byLabel["Listening"]?.band?.takeIf { it > 0.0 },
+        IeltsSkill.READING to byLabel["Reading"]?.band?.takeIf { it > 0.0 },
+        IeltsSkill.WRITING to byLabel["Writing"]?.band?.takeIf { it > 0.0 },
+        IeltsSkill.SPEAKING to byLabel["Speaking"]?.band?.takeIf { it > 0.0 }
+    )
+}
 
+@Composable
+private fun BandProgressRing(
+    progress: Float,
+    ringSize: Dp,
+    strokeWidth: Dp,
+    activeColor: Color,
+    trackColor: Color = NeutralBorder,
+    modifier: Modifier = Modifier,
+    centerContent: @Composable () -> Unit
+) {
+    Box(
+        modifier = modifier.size(ringSize),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val strokePx = strokeWidth.toPx()
+            val inset = strokePx / 2f
+            val arcSize = Size(size.width - strokePx, size.height - strokePx)
+            val topLeft = Offset(inset, inset)
+
+            drawArc(
+                color = trackColor,
+                startAngle = -90f,
+                sweepAngle = 360f,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = strokePx, cap = StrokeCap.Round)
+            )
+
+            val clamped = progress.coerceIn(0f, 1f)
+            if (clamped > 0f) {
+                drawArc(
+                    color = activeColor,
+                    startAngle = -90f,
+                    sweepAngle = 360f * clamped,
+                    useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
+                    style = Stroke(width = strokePx, cap = StrokeCap.Round)
+                )
+            }
+        }
+        centerContent()
+    }
+}
+
+@Composable
+private fun OverallBandRingCard(
+    overallBand: Double?,
+    targetBand: Double,
+    onStartPractice: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -358,47 +300,172 @@ private fun CollapsibleProgressCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { expanded = !expanded }
-                .padding(IeltsSpacing.CardPadding),
-            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
+                .padding(IeltsSpacing.Lg),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
+            if (overallBand == null) {
+                BandProgressRing(
+                    progress = 0f,
+                    ringSize = 136.dp,
+                    strokeWidth = 8.dp,
+                    activeColor = BrandBlue
                 ) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = summary,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                    Icon(
+                        imageVector = IeltsIcons.Progress,
+                        contentDescription = "Not marked yet",
+                        tint = LockedSlate,
+                        modifier = Modifier.size(IeltsSpacing.HeroIcon)
                     )
                 }
-                Icon(
-                    imageVector = if (expanded) IeltsIcons.ExpandLess else IeltsIcons.ExpandMore,
-                    contentDescription = if (expanded) "Collapse $title" else "Expand $title",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                Text(
+                    text = "Not marked yet",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-
-            AnimatedVisibility(visible = expanded) {
-                Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)) {
-                    HorizontalDivider(color = NeutralBorder)
-                    content()
+                Button(
+                    onClick = onStartPractice,
+                    modifier = Modifier.height(IeltsSpacing.TouchTarget)
+                ) {
+                    Text("Start")
+                }
+            } else {
+                val progress = (overallBand / targetBand).toFloat().coerceIn(0f, 1f)
+                BandProgressRing(
+                    progress = progress,
+                    ringSize = 148.dp,
+                    strokeWidth = 8.dp,
+                    activeColor = BrandBlue
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = IeltsScoring.formatBand(overallBand),
+                            style = MaterialTheme.typography.displayLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = BrandBlue
+                        )
+                        Text(
+                            text = "/ ${IeltsScoring.formatBand(targetBand)}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FourSkillMiniRingsCard(
+    bandBySkill: Map<IeltsSkill, Double?>,
+    targetBand: Double
+) {
+    val skills = listOf(
+        Triple(IeltsSkill.LISTENING, IeltsIcons.Listening, BrandTeal),
+        Triple(IeltsSkill.READING, IeltsIcons.Reading, BrandBlue),
+        Triple(IeltsSkill.WRITING, IeltsIcons.Writing, WarningAmber),
+        Triple(IeltsSkill.SPEAKING, IeltsIcons.Speaking, SuccessGreen)
+    )
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, NeutralBorder)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(IeltsSpacing.Md),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            skills.forEach { (skill, icon, color) ->
+                val band = bandBySkill[skill]
+                val progress = if (band != null) {
+                    (band / targetBand).toFloat().coerceIn(0f, 1f)
+                } else {
+                    0f
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = skill.label,
+                        tint = if (band != null) color else LockedSlate,
+                        modifier = Modifier.size(IeltsSpacing.FeatureIcon)
+                    )
+                    BandProgressRing(
+                        progress = progress,
+                        ringSize = 62.dp,
+                        strokeWidth = 5.dp,
+                        activeColor = color
+                    ) {
+                        Text(
+                            text = band?.let { IeltsScoring.formatBand(it) } ?: "-",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (band != null) color else LockedSlate
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeakestTypeChip(
+    weakestType: QuestionTypeAccuracy,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.large,
+        color = WarningAmberBg,
+        border = BorderStroke(1.dp, WarningAmber.copy(alpha = 0.4f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = IeltsSpacing.Md, vertical = IeltsSpacing.ItemGap),
+            horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = IeltsIcons.Warning,
+                contentDescription = "Weakest type",
+                tint = WarningAmber,
+                modifier = Modifier.size(IeltsSpacing.FeatureIcon)
+            )
+            Text(
+                text = "${plainQuestionTypeName(weakestType.category)} ${weakestType.accuracyPercent}%",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = WarningAmber,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun DetailVisualSection(
+    title: String,
+    content: @Composable () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        content()
     }
 }
 
@@ -424,7 +491,7 @@ private fun EmptyMetricPrompt(
 }
 
 @Composable
-private fun AllBooksAggregationContent(
+private fun BooksBarsContent(
     bookSummaries: List<BookProgressSummary>
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)) {
@@ -435,92 +502,43 @@ private fun AllBooksAggregationContent(
                 0f
             }
 
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                color = if (summary.hasSeed) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f) else LockedSlateBg,
-                border = BorderStroke(1.dp, NeutralBorder)
-            ) {
-                Column(
-                    modifier = Modifier.padding(IeltsSpacing.Md),
-                    verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
+            Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                text = plainBookName(summary.book),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = if (!summary.hasSeed) {
-                                    "Unavailable"
-                                } else {
-                                    "${summary.completedSections} of ${summary.availableSections} done"
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (summary.hasSeed) MaterialTheme.colorScheme.onSurfaceVariant else LockedSlate
-                            )
-                        }
-                        Text(
-                            text = summary.averageBand?.let { "Band ${IeltsScoring.formatBand(it)}" } ?: "Not marked yet",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (summary.averageBand != null) BrandBlue else LockedSlate
-                        )
-                    }
+                    Text(
+                        text = summary.book.code,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = if (summary.hasSeed) {
+                            "${summary.completedSections}/${summary.availableSections}"
+                        } else {
+                            "Locked"
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (summary.hasSeed) BrandTeal else LockedSlate
+                    )
+                }
 
-                    if (summary.averageBand != null) {
-                        val skillPairs = listOf(
-                            "Listening" to summary.listeningBand,
-                            "Reading" to summary.readingBand,
-                            "Writing" to summary.writingBand,
-                            "Speaking" to summary.speakingBand
-                        ).filter { it.second != null }
-
-                        Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
-                            skillPairs.forEach { (name, band) ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = name,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = IeltsScoring.formatBand(band!!),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = BrandBlue
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    if (summary.hasSeed) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(8.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(completionFraction)
-                                    .fillMaxHeight()
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(BrandTeal)
-                            )
-                        }
-                    }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(completionFraction)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(BrandTeal)
+                    )
                 }
             }
         }
@@ -564,11 +582,7 @@ private fun QuestionTypeAccuracyContent(
                         modifier = Modifier.weight(1f)
                     )
                     Text(
-                        text = if (entry.total > 0) {
-                            "${entry.accuracyPercent}% (${entry.correct}/${entry.total})"
-                        } else {
-                            "Not marked yet"
-                        },
+                        text = if (entry.total > 0) "${entry.accuracyPercent}%" else "-",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = barColor
@@ -635,15 +649,15 @@ private fun HorizontalBarsContent(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(10.dp)
-                        .clip(RoundedCornerShape(5.dp))
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(fraction)
                             .fillMaxHeight()
-                            .clip(RoundedCornerShape(5.dp))
+                            .clip(RoundedCornerShape(4.dp))
                             .background(barColor)
                     )
                 }
@@ -668,7 +682,7 @@ private fun RecentTestsBarsContent(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(160.dp),
+            .height(148.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.Bottom
     ) {
@@ -688,7 +702,7 @@ private fun RecentTestsBarsContent(
                 Box(
                     modifier = Modifier
                         .padding(vertical = IeltsSpacing.Sm)
-                        .width(32.dp)
+                        .width(28.dp)
                         .weight(1f),
                     contentAlignment = Alignment.BottomCenter
                 ) {
@@ -720,10 +734,10 @@ private fun RecentTestsBarsContent(
 
 private fun formatRecordLabel(raw: String): String {
     return when {
-        raw.endsWith(" L") -> raw.removeSuffix(" L") + "\nList"
-        raw.endsWith(" R") -> raw.removeSuffix(" R") + "\nRead"
-        raw.endsWith(" W") -> raw.removeSuffix(" W") + "\nWrite"
-        raw.endsWith(" S") -> raw.removeSuffix(" S") + "\nSpeak"
+        raw.endsWith(" L") -> raw.removeSuffix(" L") + "\nL"
+        raw.endsWith(" R") -> raw.removeSuffix(" R") + "\nR"
+        raw.endsWith(" W") -> raw.removeSuffix(" W") + "\nW"
+        raw.endsWith(" S") -> raw.removeSuffix(" S") + "\nS"
         else -> raw
     }
 }

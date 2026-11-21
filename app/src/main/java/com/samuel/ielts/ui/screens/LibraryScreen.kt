@@ -1,6 +1,5 @@
 package com.samuel.ielts.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -8,23 +7,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -46,30 +41,23 @@ import com.samuel.ielts.model.SectionStatus
 import com.samuel.ielts.model.SkillSectionState
 import com.samuel.ielts.model.StudyProgressSnapshot
 import com.samuel.ielts.ui.components.IeltsIcons
-import com.samuel.ielts.ui.components.NextStepCardsSection
+import com.samuel.ielts.ui.components.NextStepSingleCard
 import com.samuel.ielts.ui.components.StreakFlameTile
 import com.samuel.ielts.ui.theme.IeltsSpacing
 
 private enum class BookFilter(val label: String) {
     ALL("All"),
-    C20("Cambridge 20"),
-    C21("Cambridge 21"),
-    C19("Cambridge 19")
+    C20("C20"),
+    C21("C21"),
+    C19("C19")
 }
 
-internal fun plainBookName(book: IeltsBook): String = when (book) {
-    IeltsBook.C20 -> "Cambridge 20"
-    IeltsBook.C21 -> "Cambridge 21"
-    IeltsBook.C19 -> "Cambridge 19"
-}
+internal fun plainBookName(book: IeltsBook): String = book.code
 
 @Composable
 fun LibraryScreen(
     tests: List<PracticeTest>,
-    onOpenListening: (PracticeTest) -> Unit,
-    onOpenReading: (PracticeTest) -> Unit,
-    onOpenWriting: (PracticeTest) -> Unit,
-    onOpenSpeaking: (PracticeTest) -> Unit,
+    onOpenTest: (PracticeTest) -> Unit,
     streakSnapshot: StudyProgressSnapshot = StudyProgressSnapshot(),
     topNextStep: NextStepCardData? = null,
     onSelectNextStep: (NextStepCardData) -> Unit = {},
@@ -88,12 +76,12 @@ fun LibraryScreen(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(IeltsSpacing.CardPadding),
-        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.SectionGap)
+        contentPadding = PaddingValues(IeltsSpacing.Md),
+        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
     ) {
         item {
             Text(
-                text = "Library",
+                text = "Test Library",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -108,10 +96,9 @@ fun LibraryScreen(
 
         if (topNextStep != null) {
             item {
-                NextStepCardsSection(
-                    title = "Next Step",
-                    steps = listOf(topNextStep),
-                    onSelectStep = onSelectNextStep
+                NextStepSingleCard(
+                    step = topNextStep,
+                    onStart = { onSelectNextStep(topNextStep) }
                 )
             }
         }
@@ -147,24 +134,11 @@ fun LibraryScreen(
                 )
             }
 
-            if (availableSections == 0) {
-                item(key = "empty_${book.code}") {
-                    UnavailableBookCard(book = book)
-                }
-            } else {
-                items(items = bookTests, key = { it.id }) { test ->
-                    PracticeTestCard(
-                        test = test,
-                        onOpenSkill = { skill ->
-                            when (skill) {
-                                IeltsSkill.LISTENING -> onOpenListening(test)
-                                IeltsSkill.READING -> onOpenReading(test)
-                                IeltsSkill.WRITING -> onOpenWriting(test)
-                                IeltsSkill.SPEAKING -> onOpenSpeaking(test)
-                            }
-                        }
-                    )
-                }
+            items(items = bookTests, key = { it.id }) { test ->
+                PracticeTestRow(
+                    test = test,
+                    onClick = { onOpenTest(test) }
+                )
             }
         }
     }
@@ -176,108 +150,56 @@ private fun BookSectionHeader(
     availableSections: Int,
     completedSections: Int
 ) {
-    Row(
+    val headerText = if (availableSections == 0) {
+        "${book.code} - Locked"
+    } else {
+        "${book.code} - $completedSections of $availableSections done"
+    }
+
+    Text(
+        text = headerText,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = if (availableSections == 0) LockedSlate else MaterialTheme.colorScheme.onSurface,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = IeltsSpacing.Xs),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = if (availableSections == 0) IeltsIcons.EmptyNoSeeds else IeltsIcons.Library,
-                contentDescription = plainBookName(book),
-                tint = if (availableSections == 0) LockedSlate else MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(IeltsSpacing.FeatureIcon)
-            )
-            Spacer(modifier = Modifier.width(IeltsSpacing.Sm))
-            Text(
-                text = plainBookName(book),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-        }
-        val statusSummary = if (availableSections == 0) {
-            "Unavailable"
-        } else {
-            "$completedSections of $availableSections done"
-        }
-        Text(
-            text = statusSummary,
-            style = MaterialTheme.typography.labelMedium,
-            color = if (availableSections == 0) LockedSlate else MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
+            .padding(top = IeltsSpacing.Sm)
+    )
 }
 
 @Composable
-private fun UnavailableBookCard(
-    book: IeltsBook
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        color = LockedSlateBg,
-        border = BorderStroke(1.dp, NeutralBorder)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(IeltsSpacing.CardPadding),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
-        ) {
-            Icon(
-                imageVector = IeltsIcons.EmptyNoSeeds,
-                contentDescription = "Unavailable",
-                tint = LockedSlate,
-                modifier = Modifier.size(IeltsSpacing.FeatureIcon)
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
-                Text(
-                    text = "${plainBookName(book)} tests not added yet",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = LockedSlate
-                )
-                Text(
-                    text = "Choose another book above to practice.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = LockedSlate
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PracticeTestCard(
+private fun PracticeTestRow(
     test: PracticeTest,
-    onOpenSkill: (IeltsSkill) -> Unit
+    onClick: () -> Unit
 ) {
-    var expanded by rememberSaveable(test.id) { mutableStateOf(false) }
-
     val sectionStates = test.sectionStates()
     val availableStates = sectionStates.filter { it.status != SectionStatus.LOCKED }
     val completedCount = availableStates.count { it.status == SectionStatus.COMPLETED }
-    val recordedBands = listOfNotNull(
-        test.lastListeningBand,
-        test.lastReadingBand,
-        test.lastWritingBand,
-        test.lastSpeakingBand
-    )
-    val averageBand = recordedBands.takeIf { it.isNotEmpty() }?.let {
-        IeltsScoring.roundToHalfBand(it.average())
+
+    val statusWord = when {
+        !test.hasAnySeededSection -> "Locked"
+        availableStates.isNotEmpty() && completedCount == availableStates.size -> "Done"
+        else -> "Ready"
     }
 
-    val helperLine = when {
-        !test.hasAnySeededSection -> "Unavailable"
-        averageBand != null -> "Band ${IeltsScoring.formatBand(averageBand)} ($completedCount of ${availableStates.size} done)"
-        else -> "Not marked yet"
+    val statusColor = when (statusWord) {
+        "Done" -> SuccessGreen
+        "Ready" -> BrandBlue
+        else -> LockedSlate
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (test.hasAnySeededSection) {
+                    Modifier.clickable(onClick = onClick)
+                } else {
+                    Modifier
+                }
+            ),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = if (test.hasAnySeededSection) {
@@ -288,101 +210,45 @@ private fun PracticeTestCard(
         ),
         border = BorderStroke(1.dp, NeutralBorder)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(
-                    if (test.hasAnySeededSection) {
-                        Modifier.clickable { expanded = !expanded }
-                    } else {
-                        Modifier
-                    }
-                )
-                .padding(IeltsSpacing.CardPadding),
-            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
+                .padding(horizontal = IeltsSpacing.Md, vertical = IeltsSpacing.Md),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Text(
+                text = "Test ${test.testNumber}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = if (test.hasAnySeededSection) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    LockedSlate
+                },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
             ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
-                ) {
-                    Text(
-                        text = "Test ${test.testNumber}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (test.hasAnySeededSection) {
-                            MaterialTheme.colorScheme.onSurface
-                        } else {
-                            LockedSlate
-                        }
-                    )
-                    Text(
-                        text = helperLine,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (averageBand != null) BrandTeal else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                Icon(
-                    imageVector = when {
-                        !test.hasAnySeededSection -> IeltsIcons.EmptyNoSeeds
-                        expanded -> IeltsIcons.ExpandLess
-                        else -> IeltsIcons.ExpandMore
-                    },
-                    contentDescription = if (expanded) "Collapse test" else "Expand test",
-                    tint = if (test.hasAnySeededSection) MaterialTheme.colorScheme.primary else LockedSlate,
-                    modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                Text(
+                    text = statusWord,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = statusColor,
+                    maxLines = 1
                 )
-            }
-
-            if (test.hasAnySeededSection) {
-                AnimatedVisibility(visible = expanded) {
-                    Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)) {
-                        HorizontalDivider(color = NeutralBorder)
-
-                        val listeningState = sectionStates[0]
-                        val readingState = sectionStates[1]
-                        val writingState = sectionStates[2]
-                        val speakingState = sectionStates[3]
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
-                        ) {
-                            SkillStatusTile(
-                                state = listeningState,
-                                onClick = { onOpenSkill(IeltsSkill.LISTENING) },
-                                modifier = Modifier.weight(1f)
-                            )
-                            SkillStatusTile(
-                                state = readingState,
-                                onClick = { onOpenSkill(IeltsSkill.READING) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
-                        ) {
-                            SkillStatusTile(
-                                state = writingState,
-                                onClick = { onOpenSkill(IeltsSkill.WRITING) },
-                                modifier = Modifier.weight(1f)
-                            )
-                            SkillStatusTile(
-                                state = speakingState,
-                                onClick = { onOpenSkill(IeltsSkill.SPEAKING) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
+                if (test.hasAnySeededSection) {
+                    Icon(
+                        imageVector = IeltsIcons.ChevronRight,
+                        contentDescription = "Open Test ${test.testNumber}",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                    )
                 }
             }
         }
@@ -390,25 +256,86 @@ private fun PracticeTestCard(
 }
 
 @Composable
-private fun SkillStatusTile(
-    state: SkillSectionState,
-    onClick: () -> Unit,
+fun TestDetailScreen(
+    test: PracticeTest,
+    onBack: () -> Unit,
+    onOpenSkill: (IeltsSkill) -> Unit,
     modifier: Modifier = Modifier
+) {
+    val sectionStates = test.sectionStates()
+    val recordedBands = listOfNotNull(
+        test.lastListeningBand,
+        test.lastReadingBand,
+        test.lastWritingBand,
+        test.lastSpeakingBand
+    )
+    val averageBand = recordedBands.takeIf { it.isNotEmpty() }?.let {
+        IeltsScoring.roundToHalfBand(it.average())
+    }
+
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(IeltsSpacing.Md),
+        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
+    ) {
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+            ) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.size(IeltsSpacing.TouchTarget)
+                ) {
+                    Icon(
+                        imageVector = IeltsIcons.Back,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = "${test.book.code} Test ${test.testNumber}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = if (averageBand != null) {
+                            "Band ${IeltsScoring.formatBand(averageBand)}"
+                        } else {
+                            "Not marked yet"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (averageBand != null) BrandTeal else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                }
+            }
+        }
+
+        items(items = sectionStates, key = { it.skill.name }) { state ->
+            SkillDetailRowCard(
+                state = state,
+                onClick = { onOpenSkill(state.skill) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SkillDetailRowCard(
+    state: SkillSectionState,
+    onClick: () -> Unit
 ) {
     val isLocked = state.status == SectionStatus.LOCKED
     val isDone = state.status == SectionStatus.COMPLETED
-
-    val containerColor = when (state.status) {
-        SectionStatus.LOCKED -> LockedSlateBg
-        SectionStatus.AVAILABLE -> BrandBlueSoft.copy(alpha = 0.4f)
-        SectionStatus.COMPLETED -> SuccessGreenBg
-    }
-
-    val borderColor = when (state.status) {
-        SectionStatus.LOCKED -> NeutralBorder
-        SectionStatus.AVAILABLE -> BrandBlue.copy(alpha = 0.3f)
-        SectionStatus.COMPLETED -> SuccessGreen.copy(alpha = 0.35f)
-    }
 
     val accentColor = when (state.status) {
         SectionStatus.LOCKED -> LockedSlate
@@ -417,15 +344,15 @@ private fun SkillStatusTile(
     }
 
     val statusText = when {
-        isLocked -> "Unavailable"
+        isLocked -> "Locked"
         isDone && state.lastBand != null -> "Band ${IeltsScoring.formatBand(state.lastBand)}"
         isDone -> "Done"
-        else -> "Start"
+        else -> "Ready"
     }
 
-    Surface(
-        modifier = modifier
-            .defaultMinSize(minHeight = 60.dp)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
             .then(
                 if (!isLocked) {
                     Modifier.clickable(onClick = onClick)
@@ -433,16 +360,18 @@ private fun SkillStatusTile(
                     Modifier
                 }
             ),
-        shape = MaterialTheme.shapes.medium,
-        color = containerColor,
-        border = BorderStroke(1.dp, borderColor)
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = if (isLocked) LockedSlateBg.copy(alpha = 0.7f) else MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, NeutralBorder)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = IeltsSpacing.ItemGap, vertical = IeltsSpacing.ItemGap),
-            horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(IeltsSpacing.Md),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
         ) {
             Icon(
                 imageVector = if (isLocked) IeltsIcons.EmptyNoSeeds else skillIcon(state.skill),
@@ -450,25 +379,28 @@ private fun SkillStatusTile(
                 tint = accentColor,
                 modifier = Modifier.size(IeltsSpacing.FeatureIcon)
             )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(
-                    text = state.skill.label,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isLocked) LockedSlate else MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = accentColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+            Text(
+                text = state.skill.label,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = if (isLocked) LockedSlate else MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = statusText,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = accentColor,
+                maxLines = 1
+            )
+            if (!isLocked) {
+                Icon(
+                    imageVector = IeltsIcons.ChevronRight,
+                    contentDescription = "Start ${state.skill.label}",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(IeltsSpacing.ActionIcon)
                 )
             }
         }

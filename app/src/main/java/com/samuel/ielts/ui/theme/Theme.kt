@@ -13,8 +13,8 @@ object IeltsSpacing {
     val Sm = 8.dp
     val ItemGap = 12.dp
     val Md = 16.dp
-    val CardPadding = 20.dp
-    val SectionGap = 20.dp
+    val CardPadding = 16.dp
+    val SectionGap = 16.dp
     val Lg = 24.dp
     val Xl = 32.dp
     val TouchTarget = 48.dp

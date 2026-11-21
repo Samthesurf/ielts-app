@@ -1,8 +1,10 @@
 package com.samuel.ielts.ui.components
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.Article
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.automirrored.rounded.Rule
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
@@ -84,6 +86,8 @@ object IeltsIcons {
     val Warning: ImageVector get() = Icons.Rounded.WarningAmber
 
     // Navigation, controls, and study tools
+    val Back: ImageVector get() = Icons.AutoMirrored.Rounded.ArrowBack
+    val ChevronRight: ImageVector get() = Icons.AutoMirrored.Rounded.KeyboardArrowRight
     val NextStepArrow: ImageVector get() = Icons.AutoMirrored.Rounded.ArrowForward
     val Search: ImageVector get() = Icons.Rounded.Search
     val Timer: ImageVector get() = Icons.Rounded.Timer

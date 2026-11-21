@@ -51,6 +51,7 @@ import com.samuel.ielts.data.Attempt
 import com.samuel.ielts.data.IeltsDb
 import com.samuel.ielts.model.CriterionScore
 import com.samuel.ielts.model.IeltsScoring
+import com.samuel.ielts.model.IeltsSkill
 import com.samuel.ielts.model.NextStepCardData
 import com.samuel.ielts.model.NextStepDestination
 import com.samuel.ielts.model.NextStepRecommender
@@ -81,6 +82,7 @@ import com.samuel.ielts.ui.screens.QuizScreen
 import com.samuel.ielts.ui.screens.SettingsScreen
 import com.samuel.ielts.ui.screens.SettingsTestState
 import com.samuel.ielts.ui.screens.SpeakingPracticeScreen
+import com.samuel.ielts.ui.screens.TestDetailScreen
 import com.samuel.ielts.ui.screens.WritingScreen
 import com.samuel.ielts.ui.screens.parseWritingMarkJson
 import com.samuel.ielts.ui.screens.toFriendlyNetworkError
@@ -101,6 +103,7 @@ import java.util.concurrent.TimeUnit
 
 object IeltsRoutes {
     const val LIBRARY = "library"
+    const val TEST_DETAIL = "test_detail"
     const val QUIZ = "quiz"
     const val WRITING = "writing"
     const val SPEAKING = "speaking"
@@ -324,27 +327,35 @@ fun IeltsApp(
                     IeltsRoutes.LIBRARY -> {
                         LibraryScreen(
                             tests = practiceTests,
-                            onOpenListening = { test ->
+                            onOpenTest = { test ->
                                 selectedTestId = test.id
-                                selectedQuizSkill = QuizSkillMode.LISTENING
-                                navigateTo(IeltsRoutes.QUIZ)
-                            },
-                            onOpenReading = { test ->
-                                selectedTestId = test.id
-                                selectedQuizSkill = QuizSkillMode.READING
-                                navigateTo(IeltsRoutes.QUIZ)
-                            },
-                            onOpenWriting = { test ->
-                                selectedTestId = test.id
-                                navigateTo(IeltsRoutes.WRITING)
-                            },
-                            onOpenSpeaking = { test ->
-                                selectedTestId = test.id
-                                navigateTo(IeltsRoutes.SPEAKING)
+                                navigateTo(IeltsRoutes.TEST_DETAIL)
                             },
                             streakSnapshot = streakSnapshot,
                             topNextStep = nextSteps.firstOrNull(),
                             onSelectNextStep = ::handleNextStep,
+                            modifier = contentModifier
+                        )
+                    }
+
+                    IeltsRoutes.TEST_DETAIL -> {
+                        TestDetailScreen(
+                            test = selectedTest,
+                            onBack = ::navigateBack,
+                            onOpenSkill = { skill ->
+                                when (skill) {
+                                    IeltsSkill.LISTENING -> {
+                                        selectedQuizSkill = QuizSkillMode.LISTENING
+                                        navigateTo(IeltsRoutes.QUIZ)
+                                    }
+                                    IeltsSkill.READING -> {
+                                        selectedQuizSkill = QuizSkillMode.READING
+                                        navigateTo(IeltsRoutes.QUIZ)
+                                    }
+                                    IeltsSkill.WRITING -> navigateTo(IeltsRoutes.WRITING)
+                                    IeltsSkill.SPEAKING -> navigateTo(IeltsRoutes.SPEAKING)
+                                }
+                            },
                             modifier = contentModifier
                         )
                     }
@@ -561,7 +572,8 @@ private fun IeltsBottomNavigationBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             destinations.forEach { destination ->
-                val isSelected = currentRoute == destination.route
+                val isSelected = currentRoute == destination.route ||
+                    (currentRoute == IeltsRoutes.TEST_DETAIL && destination.route == IeltsRoutes.LIBRARY)
                 val contentColor = if (isSelected) {
                     MaterialTheme.colorScheme.primary
                 } else {
@@ -681,7 +693,7 @@ private fun buildQuestionTypeStats(attempts: List<QuizAttemptSummary>): List<Que
 private fun buildWritingCriteriaProgress(history: List<MarkResult>): List<SkillProgress> {
     if (history.isEmpty()) return emptyList()
     return listOf(
-        SkillProgress("Task Achievement / Response", IeltsScoring.roundToHalfBand(history.map { it.ta_tr }.average())),
+        SkillProgress("Task Achievement", IeltsScoring.roundToHalfBand(history.map { it.ta_tr }.average())),
         SkillProgress("Coherence and Cohesion", IeltsScoring.roundToHalfBand(history.map { it.cc }.average())),
         SkillProgress("Lexical Resource", IeltsScoring.roundToHalfBand(history.map { it.lr }.average())),
         SkillProgress("Grammatical Range and Accuracy", IeltsScoring.roundToHalfBand(history.map { it.gra }.average()))
