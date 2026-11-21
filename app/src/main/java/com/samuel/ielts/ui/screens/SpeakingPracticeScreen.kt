@@ -1,6 +1,8 @@
 package com.samuel.ielts.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,11 +19,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
@@ -53,6 +57,7 @@ fun SpeakingPracticeScreen(
     modifier: Modifier = Modifier
 ) {
     var notes by rememberSaveable(speakingData.testId) { mutableStateOf("") }
+    var showNotes by rememberSaveable(speakingData.testId) { mutableStateOf(false) }
     var selectedBand by rememberSaveable(speakingData.testId) {
         mutableDoubleStateOf(initialBand ?: 6.5)
     }
@@ -60,15 +65,17 @@ fun SpeakingPracticeScreen(
         mutableStateOf<Double?>(null)
     }
 
+    val recordedBand = savedBandNotice ?: initialBand
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(IeltsSpacing.Md),
-        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
+        contentPadding = PaddingValues(IeltsSpacing.CardPadding),
+        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.SectionGap)
     ) {
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm),
+                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
@@ -82,9 +89,9 @@ fun SpeakingPracticeScreen(
                     ) {
                         Icon(
                             imageVector = IeltsIcons.Speaking,
-                            contentDescription = "Speaking practice microphone",
+                            contentDescription = "Speaking",
                             tint = BrandTeal,
-                            modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                            modifier = Modifier.size(IeltsSpacing.FeatureIcon)
                         )
                     }
                 }
@@ -98,9 +105,13 @@ fun SpeakingPracticeScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Practice Parts 1, 2, and 3 and log your self-rated band.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = if (recordedBand != null) {
+                            "Band ${IeltsScoring.formatBand(recordedBand)}"
+                        } else {
+                            "Not marked yet"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (recordedBand != null) BrandTeal else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -130,23 +141,23 @@ fun SpeakingPracticeScreen(
             item {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
+                    shape = MaterialTheme.shapes.large,
                     color = SuccessGreenBg,
                     border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.4f))
                 ) {
                     Row(
                         modifier = Modifier.padding(IeltsSpacing.Md),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                        horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
                     ) {
                         Icon(
                             imageVector = IeltsIcons.Completed,
-                            contentDescription = "Speaking band saved",
+                            contentDescription = "Saved",
                             tint = SuccessGreen,
-                            modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                            modifier = Modifier.size(IeltsSpacing.FeatureIcon)
                         )
                         Text(
-                            text = "Saved $testLabel Speaking Band ${IeltsScoring.formatBand(noticeBand)} to Progress.",
+                            text = "Saved Band ${IeltsScoring.formatBand(noticeBand)}.",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = SuccessGreen
@@ -158,27 +169,27 @@ fun SpeakingPracticeScreen(
 
         item {
             SpeakingPartCard(
-                partBadge = "Part 1",
+                key = "${speakingData.testId}_p1",
                 partIcon = IeltsIcons.SpeakingPart1,
-                title = "Introduction and Interview",
+                title = "Part 1: Interview",
                 body = speakingData.part1
             )
         }
 
         item {
             SpeakingPartCard(
-                partBadge = "Part 2",
+                key = "${speakingData.testId}_p2",
                 partIcon = IeltsIcons.SpeakingPart2,
-                title = "Individual Long Turn (Cue Card)",
+                title = "Part 2: Cue Card",
                 body = speakingData.part2
             )
         }
 
         item {
             SpeakingPartCard(
-                partBadge = "Part 3",
+                key = "${speakingData.testId}_p3",
                 partIcon = IeltsIcons.SpeakingPart3,
-                title = "Two-Way Discussion",
+                title = "Part 3: Discussion",
                 body = speakingData.part3
             )
         }
@@ -191,27 +202,46 @@ fun SpeakingPracticeScreen(
                 border = BorderStroke(1.dp, NeutralBorder)
             ) {
                 Column(
-                    modifier = Modifier.padding(IeltsSpacing.Md),
-                    verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                    modifier = Modifier.padding(IeltsSpacing.CardPadding),
+                    verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
                 ) {
-                    Text(
-                        text = "Practice Notes and Band Log",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    OutlinedTextField(
-                        value = notes,
-                        onValueChange = { notes = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp),
-                        label = { Text("Cue card notes or key phrases") }
-                    )
-                    Text(
-                        text = "Select speaking band estimate:",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = "Self-Assessment",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = if (recordedBand != null) {
+                                    "Saved: Band ${IeltsScoring.formatBand(recordedBand)}"
+                                } else {
+                                    "Not marked yet"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        TextButton(onClick = { showNotes = !showNotes }) {
+                            Text(if (showNotes) "Hide notes" else "Notes")
+                        }
+                    }
+
+                    AnimatedVisibility(visible = showNotes) {
+                        OutlinedTextField(
+                            value = notes,
+                            onValueChange = { notes = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp),
+                            label = { Text("Cue card notes") }
+                        )
+                    }
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -226,6 +256,7 @@ fun SpeakingPracticeScreen(
                             )
                         }
                     }
+
                     Button(
                         onClick = {
                             val rounded = IeltsScoring.roundToHalfBand(selectedBand)
@@ -236,7 +267,7 @@ fun SpeakingPracticeScreen(
                             .fillMaxWidth()
                             .height(IeltsSpacing.TouchTarget)
                     ) {
-                        Text("Save Speaking Band (${IeltsScoring.formatBand(selectedBand)})")
+                        Text("Save Band ${IeltsScoring.formatBand(selectedBand)}")
                     }
                 }
             }
@@ -246,11 +277,13 @@ fun SpeakingPracticeScreen(
 
 @Composable
 private fun SpeakingPartCard(
-    partBadge: String,
+    key: String,
     partIcon: ImageVector,
     title: String,
     body: String
 ) {
+    var expanded by rememberSaveable(key) { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -258,42 +291,52 @@ private fun SpeakingPartCard(
         border = BorderStroke(1.dp, NeutralBorder)
     ) {
         Column(
-            modifier = Modifier.padding(IeltsSpacing.Md),
-            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(IeltsSpacing.CardPadding),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
         ) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    imageVector = partIcon,
-                    contentDescription = partBadge,
-                    tint = BrandTeal,
-                    modifier = Modifier.size(IeltsSpacing.ActionIcon)
-                )
-                Surface(
-                    color = BrandTealSoft,
-                    shape = MaterialTheme.shapes.small
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap),
+                    modifier = Modifier.weight(1f)
                 ) {
+                    Icon(
+                        imageVector = partIcon,
+                        contentDescription = title,
+                        tint = BrandTeal,
+                        modifier = Modifier.size(IeltsSpacing.FeatureIcon)
+                    )
                     Text(
-                        text = partBadge,
-                        modifier = Modifier.padding(horizontal = IeltsSpacing.Sm, vertical = IeltsSpacing.Xs),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = BrandTeal
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
                 }
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
+                Icon(
+                    imageVector = if (expanded) IeltsIcons.ExpandLess else IeltsIcons.ExpandMore,
+                    contentDescription = if (expanded) "Collapse $title" else "Expand $title",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(IeltsSpacing.ActionIcon)
                 )
             }
-            Text(
-                text = body.ifBlank { "No prompt text available." },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+
+            AnimatedVisibility(visible = expanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)) {
+                    HorizontalDivider(color = NeutralBorder)
+                    Text(
+                        text = body.ifBlank { "No prompt available." },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
         }
     }
 }

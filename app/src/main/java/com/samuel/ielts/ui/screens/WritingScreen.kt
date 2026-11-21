@@ -23,13 +23,13 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -289,8 +289,10 @@ fun WritingScreen(
     var activeTask by rememberSaveable { mutableStateOf(WritingTaskType.TASK_1) }
     var task1Draft by rememberSaveable(task1Data.prompt) { mutableStateOf(task1Data.initialDraft) }
     var task2Draft by rememberSaveable(task2Data.prompt) { mutableStateOf(task2Data.initialDraft) }
-    var showFeedback by rememberSaveable { mutableStateOf(true) }
-    var showBand75Rewrite by rememberSaveable { mutableStateOf(false) }
+    var showScoreDetails by rememberSaveable(activeTask.name) { mutableStateOf(false) }
+    var showInlineComments by rememberSaveable(activeTask.name) { mutableStateOf(false) }
+    var showBand75Rewrite by rememberSaveable(activeTask.name) { mutableStateOf(false) }
+    var showBand8Model by rememberSaveable(activeTask.name) { mutableStateOf(false) }
 
     var task1MarkResult by remember(task1Data.prompt) { mutableStateOf<MarkResult?>(null) }
     var task2MarkResult by remember(task2Data.prompt) { mutableStateOf<MarkResult?>(null) }
@@ -305,13 +307,23 @@ fun WritingScreen(
     val minWords = activeTask.minWords
     val underWordWarning = wordCount < minWords
 
-    val task1Scores = task1MarkResult?.toCriterionScores(WritingTaskType.TASK_1) ?: task1Data.scores
-    val task2Scores = task2MarkResult?.toCriterionScores(WritingTaskType.TASK_2) ?: task2Data.scores
-    val task1Band = IeltsScoring.calculateTaskBand(task1Scores)
-    val task2Band = IeltsScoring.calculateTaskBand(task2Scores)
-    val overallWritingBand = IeltsScoring.calculateWritingOverall(task1Band, task2Band)
+    val task1Scores = task1MarkResult?.toCriterionScores(WritingTaskType.TASK_1)
+        ?: task1Data.scores.filter { it.band > 0.0 }
+    val task2Scores = task2MarkResult?.toCriterionScores(WritingTaskType.TASK_2)
+        ?: task2Data.scores.filter { it.band > 0.0 }
+
+    val hasTask1Mark = task1Scores.isNotEmpty()
+    val hasTask2Mark = task2Scores.isNotEmpty()
+    val task1Band: Double? = if (hasTask1Mark) IeltsScoring.calculateTaskBand(task1Scores) else null
+    val task2Band: Double? = if (hasTask2Mark) IeltsScoring.calculateTaskBand(task2Scores) else null
+    val overallWritingBand: Double? = if (task1Band != null && task2Band != null) {
+        IeltsScoring.calculateWritingOverall(task1Band, task2Band)
+    } else {
+        null
+    }
 
     val displayScores = if (activeTask == WritingTaskType.TASK_1) task1Scores else task2Scores
+    val hasCurrentMark = displayScores.isNotEmpty()
     val displayComments = currentMarkResult?.comments ?: currentTaskData.inlineComments
     val displayRewrite75 = currentMarkResult?.rewrite75 ?: currentTaskData.band75Rewrite
     val displayModel8 = currentMarkResult?.model8 ?: currentTaskData.band8Model
@@ -334,7 +346,6 @@ fun WritingScreen(
                 } else {
                     task2MarkResult = result
                 }
-                showFeedback = true
 
                 val nextTask1Scores = if (taskToMark == WritingTaskType.TASK_1) {
                     result.toCriterionScores(WritingTaskType.TASK_1)
@@ -346,11 +357,15 @@ fun WritingScreen(
                 } else {
                     task2Scores
                 }
-                val nextOverall = IeltsScoring.calculateWritingOverall(
-                    task1Band = IeltsScoring.calculateTaskBand(nextTask1Scores),
-                    task2Band = IeltsScoring.calculateTaskBand(nextTask2Scores)
-                )
-                onOverallBandUpdated(nextOverall)
+                val nextBand = if (nextTask1Scores.isNotEmpty() && nextTask2Scores.isNotEmpty()) {
+                    IeltsScoring.calculateWritingOverall(
+                        task1Band = IeltsScoring.calculateTaskBand(nextTask1Scores),
+                        task2Band = IeltsScoring.calculateTaskBand(nextTask2Scores)
+                    )
+                } else {
+                    IeltsScoring.calculateTaskBand(result.toCriterionScores(taskToMark))
+                }
+                onOverallBandUpdated(nextBand)
                 onSaveAttempt(
                     Attempt(
                         questionId = questionId,
@@ -374,35 +389,30 @@ fun WritingScreen(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(IeltsSpacing.Md),
-        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
+        contentPadding = PaddingValues(IeltsSpacing.CardPadding),
+        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.SectionGap)
     ) {
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = "$testLabel Writing",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Switch between Task 1 (150 words) and Task 2 (250 words).",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = "$testLabel Writing",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
         }
 
         item {
             OverallWritingBandCard(
                 task1Band = task1Band,
                 task2Band = task2Band,
-                overallBand = overallWritingBand
+                overallBand = overallWritingBand,
+                isMarking = isMarking,
+                onMarkDraft = { triggerMark() }
             )
         }
 
         item {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 WritingTaskType.entries.forEach { taskType ->
@@ -423,13 +433,13 @@ fun WritingScreen(
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = MaterialTheme.shapes.large,
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = BorderStroke(1.dp, NeutralBorder)
             ) {
                 Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier = Modifier.padding(IeltsSpacing.CardPadding),
+                    verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -443,7 +453,7 @@ fun WritingScreen(
                             },
                             contentDescription = currentTaskData.taskType.shortLabel,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                            modifier = Modifier.size(IeltsSpacing.FeatureIcon)
                         )
                         Text(
                             text = currentTaskData.taskType.title,
@@ -451,6 +461,7 @@ fun WritingScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
+
                     Text(
                         text = currentTaskData.prompt,
                         style = MaterialTheme.typography.bodyMedium,
@@ -478,7 +489,7 @@ fun WritingScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Words: $wordCount / $minWords target",
+                            text = "$wordCount / $minWords words",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = if (underWordWarning) WarningAmber else SuccessGreen
@@ -495,7 +506,7 @@ fun WritingScreen(
                                     strokeWidth = 2.dp,
                                     color = MaterialTheme.colorScheme.onPrimary
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(IeltsSpacing.Sm))
                                 Text("Marking...")
                             } else {
                                 Text("Review Draft")
@@ -507,17 +518,17 @@ fun WritingScreen(
                         WordCountWarningBanner(
                             wordCount = wordCount,
                             minWords = minWords,
-                            firstCriterionName = "${activeTask.firstCriterionName} (${activeTask.firstCriterionCode})"
+                            firstCriterionName = activeTask.firstCriterionName
                         )
                     } else {
                         Surface(
                             color = SuccessGreenBg,
-                            shape = RoundedCornerShape(10.dp),
+                            shape = MaterialTheme.shapes.medium,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                text = "Word count target met ($wordCount words).",
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                text = "Word target met ($wordCount words).",
+                                modifier = Modifier.padding(horizontal = IeltsSpacing.ItemGap, vertical = IeltsSpacing.Sm),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Medium,
                                 color = SuccessGreen
@@ -539,34 +550,102 @@ fun WritingScreen(
             }
         }
 
-        if (showFeedback) {
+        if (!hasCurrentMark) {
+            item {
+                UnmarkedFeedbackCard(
+                    taskLabel = currentTaskData.taskType.shortLabel,
+                    isMarking = isMarking,
+                    onReviewDraft = { triggerMark() }
+                )
+            }
+        } else {
             item {
                 FourScoreBarsCard(
                     taskType = currentTaskData.taskType,
                     scores = displayScores,
-                    taskBand = IeltsScoring.calculateTaskBand(displayScores)
+                    taskBand = IeltsScoring.calculateTaskBand(displayScores),
+                    showDetails = showScoreDetails,
+                    onToggleDetails = { showScoreDetails = !showScoreDetails }
                 )
             }
 
-            item {
-                InlineCommentsCard(
-                    draftText = currentDraft,
-                    comments = displayComments
-                )
+            if (displayComments.isNotEmpty()) {
+                item {
+                    InlineCommentsCard(
+                        draftText = currentDraft,
+                        comments = displayComments,
+                        expanded = showInlineComments,
+                        onToggle = { showInlineComments = !showInlineComments }
+                    )
+                }
             }
 
-            item {
-                Band75RewriteCollapsibleCard(
-                    expanded = showBand75Rewrite,
-                    rewriteText = displayRewrite75,
-                    onToggle = { showBand75Rewrite = !showBand75Rewrite }
-                )
+            if (displayRewrite75.isNotBlank()) {
+                item {
+                    CollapsibleModelCard(
+                        title = "Band 7.5 Rewrite",
+                        bodyText = displayRewrite75,
+                        expanded = showBand75Rewrite,
+                        onToggle = { showBand75Rewrite = !showBand75Rewrite },
+                        accentBorder = NeutralBorder
+                    )
+                }
             }
 
-            item {
-                Band8ModelCard(
-                    modelText = displayModel8
+            if (displayModel8.isNotBlank()) {
+                item {
+                    CollapsibleModelCard(
+                        title = "Band 8 Model Answer",
+                        bodyText = displayModel8,
+                        expanded = showBand8Model,
+                        onToggle = { showBand8Model = !showBand8Model },
+                        accentBorder = BrandTeal.copy(alpha = 0.4f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UnmarkedFeedbackCard(
+    taskLabel: String,
+    isMarking: Boolean,
+    onReviewDraft: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, NeutralBorder)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(IeltsSpacing.CardPadding),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
+            ) {
+                Text(
+                    text = "$taskLabel Feedback",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
+                Text(
+                    text = "Not marked yet",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            OutlinedButton(
+                onClick = onReviewDraft,
+                enabled = !isMarking
+            ) {
+                Text("Review Draft")
             }
         }
     }
@@ -580,25 +659,25 @@ private fun WritingMarkErrorCard(
 ) {
     Surface(
         color = ErrorRedBg,
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.large,
         border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.4f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.padding(IeltsSpacing.CardPadding),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap),
                 verticalAlignment = Alignment.Top
             ) {
                 Icon(
                     imageVector = IeltsIcons.OfflineWarning,
-                    contentDescription = "Marking error warning",
+                    contentDescription = "Marking error",
                     tint = ErrorRed,
-                    modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                    modifier = Modifier.size(IeltsSpacing.FeatureIcon)
                 )
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
                     Text(
                         text = "Could not mark draft",
                         style = MaterialTheme.typography.titleSmall,
@@ -618,7 +697,7 @@ private fun WritingMarkErrorCard(
             ) {
                 Icon(
                     imageVector = IeltsIcons.ErrorRetry,
-                    contentDescription = "Retry marking",
+                    contentDescription = "Retry",
                     modifier = Modifier.size(IeltsSpacing.SmallIcon)
                 )
                 Spacer(modifier = Modifier.width(IeltsSpacing.Xs))
@@ -630,58 +709,104 @@ private fun WritingMarkErrorCard(
 
 @Composable
 private fun OverallWritingBandCard(
-    task1Band: Double,
-    task2Band: Double,
-    overallBand: Double
+    task1Band: Double?,
+    task2Band: Double?,
+    overallBand: Double?,
+    isMarking: Boolean,
+    onMarkDraft: () -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        color = BrandBlueSoft.copy(alpha = 0.55f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+        shape = MaterialTheme.shapes.large,
+        color = BrandBlueSoft.copy(alpha = 0.5f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.22f))
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier.padding(IeltsSpacing.CardPadding),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
+            if (task1Band == null && task2Band == null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
+                    ) {
+                        Text(
+                            text = "Overall Writing Band",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Not marked yet",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Formula: round((Task 1 + Task 2 x 2) / 3 to 0.5)",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Button(
+                        onClick = onMarkDraft,
+                        enabled = !isMarking,
+                        modifier = Modifier.height(IeltsSpacing.TouchTarget)
+                    ) {
+                        Text("Mark")
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
+                    ) {
+                        Text(
+                            text = "Overall Writing Band",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Formula: round((Task 1 + Task 2 x 2) / 3 to 0.5)",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     Text(
-                        text = "Overall Writing Band",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Formula: round((T1 + T2 x 2) / 3 to 0.5)",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = overallBand?.let { IeltsScoring.formatBand(it) } ?: "Not marked yet",
+                        style = if (overallBand != null) {
+                            MaterialTheme.typography.headlineMedium
+                        } else {
+                            MaterialTheme.typography.titleSmall
+                        },
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
-                Text(
-                    text = IeltsScoring.formatBand(overallBand),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    text = "Task 1: ${IeltsScoring.formatBand(task1Band)}",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = "Task 2 (2x weight): ${IeltsScoring.formatBand(task2Band)}",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
+                ) {
+                    Text(
+                        text = "Task 1: ${task1Band?.let { IeltsScoring.formatBand(it) } ?: "Not marked yet"}",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Task 2 (2x): ${task2Band?.let { IeltsScoring.formatBand(it) } ?: "Not marked yet"}",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }
@@ -695,20 +820,20 @@ private fun WordCountWarningBanner(
 ) {
     Surface(
         color = WarningAmberBg,
-        shape = RoundedCornerShape(10.dp),
+        shape = MaterialTheme.shapes.medium,
         border = BorderStroke(1.dp, WarningAmber.copy(alpha = 0.4f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(IeltsSpacing.ItemGap),
+            horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap),
             verticalAlignment = Alignment.Top
         ) {
             Icon(
                 imageVector = IeltsIcons.Warning,
                 contentDescription = "Word count warning",
                 tint = WarningAmber,
-                modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                modifier = Modifier.size(IeltsSpacing.FeatureIcon)
             )
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
@@ -718,7 +843,7 @@ private fun WordCountWarningBanner(
                     color = WarningAmber
                 )
                 Text(
-                    text = "You can still review and submit this draft. Writing under $minWords words may lower your $firstCriterionName score.",
+                    text = "You can still submit. Under $minWords words may lower $firstCriterionName.",
                     style = MaterialTheme.typography.bodySmall,
                     color = WarningAmber
                 )
@@ -731,17 +856,19 @@ private fun WordCountWarningBanner(
 private fun FourScoreBarsCard(
     taskType: WritingTaskType,
     scores: List<CriterionScore>,
-    taskBand: Double
+    taskBand: Double,
+    showDetails: Boolean,
+    onToggleDetails: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, NeutralBorder)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(IeltsSpacing.CardPadding),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -749,29 +876,38 @@ private fun FourScoreBarsCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${taskType.shortLabel} Scores (${taskType.firstCriterionCode}, CC, LR, GRA)",
+                    text = "${taskType.shortLabel} Criteria",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                Text(
-                    text = "Band ${IeltsScoring.formatBand(taskBand)}",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                ) {
+                    Text(
+                        text = "Band ${IeltsScoring.formatBand(taskBand)}",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    TextButton(onClick = onToggleDetails) {
+                        Text(if (showDetails) "Hide notes" else "Notes")
+                    }
+                }
             }
 
             scores.forEach { score ->
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "${score.criterion.code}: ${score.criterion.fullName}",
+                            text = score.criterion.fullName,
                             style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f)
                         )
                         Text(
                             text = IeltsScoring.formatBand(score.band),
@@ -787,11 +923,14 @@ private fun FourScoreBarsCard(
                             .height(10.dp),
                         trackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
-                    Text(
-                        text = score.summary,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    AnimatedVisibility(visible = showDetails) {
+                        Text(
+                            text = score.summary,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = IeltsSpacing.Xs)
+                        )
+                    }
                 }
             }
         }
@@ -801,83 +940,103 @@ private fun FourScoreBarsCard(
 @Composable
 private fun InlineCommentsCard(
     draftText: String,
-    comments: List<InlineComment>
+    comments: List<InlineComment>,
+    expanded: Boolean,
+    onToggle: () -> Unit
 ) {
     val annotatedDraft = buildAnnotatedDraft(draftText, comments)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, NeutralBorder)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggle)
+                .padding(IeltsSpacing.CardPadding),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
         ) {
-            Text(
-                text = "Inline Comments",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = annotatedDraft,
-                    modifier = Modifier.padding(12.dp),
-                    style = MaterialTheme.typography.bodyMedium
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
+                ) {
+                    Text(
+                        text = "Inline Comments",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${comments.size} notes",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) IeltsIcons.ExpandLess else IeltsIcons.ExpandMore,
+                    contentDescription = if (expanded) "Hide inline comments" else "Show inline comments",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(IeltsSpacing.ActionIcon)
                 )
             }
 
-            HorizontalDivider(color = NeutralBorder)
+            AnimatedVisibility(visible = expanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)) {
+                    HorizontalDivider(color = NeutralBorder)
 
-            comments.forEach { comment ->
-                Surface(
-                    color = WarningAmberBg.copy(alpha = 0.55f),
-                    shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, WarningAmber.copy(alpha = 0.25f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        Text(
+                            text = annotatedDraft,
+                            modifier = Modifier.padding(IeltsSpacing.ItemGap),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+
+                    comments.forEach { comment ->
+                        Surface(
+                            color = WarningAmberBg.copy(alpha = 0.5f),
+                            shape = MaterialTheme.shapes.medium,
+                            border = BorderStroke(1.dp, WarningAmber.copy(alpha = 0.25f)),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Surface(
-                                color = WarningAmber,
-                                shape = RoundedCornerShape(6.dp)
+                            Column(
+                                modifier = Modifier.padding(IeltsSpacing.ItemGap),
+                                verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
                             ) {
                                 Text(
-                                    text = "#${comment.id} ${comment.criterion.code}",
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    style = MaterialTheme.typography.labelSmall,
+                                    text = "#${comment.id} ${comment.criterion.fullName}",
+                                    style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = WarningAmber
+                                )
+                                Text(
+                                    text = "\"${comment.excerpt}\"",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = comment.note,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Text(
+                                    text = "Suggestion: ${comment.suggestion}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = BrandTeal
                                 )
                             }
-                            Text(
-                                text = "\"${comment.excerpt}\"",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
                         }
-                        Text(
-                            text = comment.note,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Text(
-                            text = "Fix: ${comment.suggestion}",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = BrandTeal
-                        )
                     }
                 }
             }
@@ -942,132 +1101,65 @@ private fun buildAnnotatedDraft(
 }
 
 @Composable
-private fun Band75RewriteCollapsibleCard(
+private fun CollapsibleModelCard(
+    title: String,
+    bodyText: String,
     expanded: Boolean,
-    rewriteText: String,
-    onToggle: () -> Unit
+    onToggle: () -> Unit,
+    accentBorder: Color
 ) {
-    val wordCount = IeltsScoring.countWords(rewriteText)
+    val wordCount = IeltsScoring.countWords(bodyText)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, NeutralBorder)
+        border = BorderStroke(1.dp, accentBorder)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onToggle),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Band 7.5 Rewrite",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = if (expanded) {
-                            "Tap to hide ($wordCount words)"
-                        } else {
-                            "Tap to open improved version ($wordCount words)"
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                IconButton(
-                    onClick = onToggle,
-                    modifier = Modifier.size(IeltsSpacing.TouchTarget)
-                ) {
-                    Icon(
-                        imageVector = if (expanded) {
-                            IeltsIcons.ExpandLess
-                        } else {
-                            IeltsIcons.ExpandMore
-                        },
-                        contentDescription = if (expanded) "Collapse Band 7.5 rewrite" else "Expand Band 7.5 rewrite",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(IeltsSpacing.ActionIcon)
-                    )
-                }
-            }
-
-            AnimatedVisibility(visible = expanded) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    HorizontalDivider(color = NeutralBorder)
-                    Text(
-                        text = rewriteText,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun Band8ModelCard(
-    modelText: String
-) {
-    val wordCount = IeltsScoring.countWords(modelText)
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, BrandTeal.copy(alpha = 0.4f))
-    ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .clickable(onClick = onToggle)
+                .padding(IeltsSpacing.CardPadding),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        color = BrandTealSoft,
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = "Band 8",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = BrandTeal
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
+                ) {
                     Text(
-                        text = "Band 8 Model",
+                        text = title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
+                    Text(
+                        text = "$wordCount words",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                Text(
-                    text = "$wordCount words",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                Icon(
+                    imageVector = if (expanded) IeltsIcons.ExpandLess else IeltsIcons.ExpandMore,
+                    contentDescription = if (expanded) "Hide $title" else "Show $title",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(IeltsSpacing.ActionIcon)
                 )
             }
 
-            HorizontalDivider(color = NeutralBorder)
-
-            Text(
-                text = modelText,
-                style = MaterialTheme.typography.bodyMedium
-            )
+            AnimatedVisibility(visible = expanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)) {
+                    HorizontalDivider(color = NeutralBorder)
+                    Text(
+                        text = bodyText,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
         }
     }
 }

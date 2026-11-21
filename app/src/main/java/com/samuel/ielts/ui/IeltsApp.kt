@@ -383,6 +383,7 @@ fun IeltsApp(
                                 practiceTests = updatedTests
                                 recordStudyAndCheckBest(updatedTests)
                             },
+                            onOpenLibrary = { navigateTo(IeltsRoutes.LIBRARY) },
                             modifier = contentModifier
                         )
                     }
@@ -476,6 +477,17 @@ fun IeltsApp(
                             streakSnapshot = streakSnapshot,
                             nextSteps = nextSteps,
                             onSelectNextStep = ::handleNextStep,
+                            onStartPractice = {
+                                val top = nextSteps.firstOrNull()
+                                if (top != null) {
+                                    handleNextStep(top)
+                                } else {
+                                    navigateTo(IeltsRoutes.LIBRARY)
+                                }
+                            },
+                            onOpenQuiz = { navigateTo(IeltsRoutes.QUIZ) },
+                            onOpenWriting = { navigateTo(IeltsRoutes.WRITING) },
+                            onOpenLibrary = { navigateTo(IeltsRoutes.LIBRARY) },
                             modifier = contentModifier
                         )
                     }
@@ -669,10 +681,10 @@ private fun buildQuestionTypeStats(attempts: List<QuizAttemptSummary>): List<Que
 private fun buildWritingCriteriaProgress(history: List<MarkResult>): List<SkillProgress> {
     if (history.isEmpty()) return emptyList()
     return listOf(
-        SkillProgress("TA / TR", IeltsScoring.roundToHalfBand(history.map { it.ta_tr }.average())),
-        SkillProgress("CC", IeltsScoring.roundToHalfBand(history.map { it.cc }.average())),
-        SkillProgress("LR", IeltsScoring.roundToHalfBand(history.map { it.lr }.average())),
-        SkillProgress("GRA", IeltsScoring.roundToHalfBand(history.map { it.gra }.average()))
+        SkillProgress("Task Achievement / Response", IeltsScoring.roundToHalfBand(history.map { it.ta_tr }.average())),
+        SkillProgress("Coherence and Cohesion", IeltsScoring.roundToHalfBand(history.map { it.cc }.average())),
+        SkillProgress("Lexical Resource", IeltsScoring.roundToHalfBand(history.map { it.lr }.average())),
+        SkillProgress("Grammatical Range and Accuracy", IeltsScoring.roundToHalfBand(history.map { it.gra }.average()))
     )
 }
 
@@ -860,30 +872,20 @@ private fun buildFallbackTask1Data(test: PracticeTest): WritingTaskData = Writin
     taskType = WritingTaskType.TASK_1,
     prompt = "Summarise the main trends and key comparisons for ${test.book.code} Test ${test.testNumber} Writing Task 1 in at least 150 words.",
     initialDraft = "",
-    scores = listOf(
-        CriterionScore(WritingCriterion.TA, 0.0, "Tap Review Draft to get a Task Achievement score."),
-        CriterionScore(WritingCriterion.CC, 0.0, "Tap Review Draft to get a Coherence and Cohesion score."),
-        CriterionScore(WritingCriterion.LR, 0.0, "Tap Review Draft to get a Lexical Resource score."),
-        CriterionScore(WritingCriterion.GRA, 0.0, "Tap Review Draft to get a Grammatical Range and Accuracy score.")
-    ),
+    scores = emptyList(),
     inlineComments = emptyList(),
-    band75Rewrite = "Submit your draft with Review Draft to generate a Band 7.5 rewrite.",
-    band8Model = "Submit your draft with Review Draft to generate a Band 8.0 model answer."
+    band75Rewrite = "",
+    band8Model = ""
 )
 
 private fun buildFallbackTask2Data(test: PracticeTest): WritingTaskData = WritingTaskData(
     taskType = WritingTaskType.TASK_2,
     prompt = "Topic: ${test.writingTopic}. Discuss both views and give your own opinion in at least 250 words.",
     initialDraft = "",
-    scores = listOf(
-        CriterionScore(WritingCriterion.TR, 0.0, "Tap Review Draft to get a Task Response score."),
-        CriterionScore(WritingCriterion.CC, 0.0, "Tap Review Draft to get a Coherence and Cohesion score."),
-        CriterionScore(WritingCriterion.LR, 0.0, "Tap Review Draft to get a Lexical Resource score."),
-        CriterionScore(WritingCriterion.GRA, 0.0, "Tap Review Draft to get a Grammatical Range and Accuracy score.")
-    ),
+    scores = emptyList(),
     inlineComments = emptyList(),
-    band75Rewrite = "Submit your draft with Review Draft to generate a Band 7.5 rewrite.",
-    band8Model = "Submit your draft with Review Draft to generate a Band 8.0 model answer."
+    band75Rewrite = "",
+    band8Model = ""
 )
 
 private fun buildFallbackSpeakingData(test: PracticeTest): SpeakingPromptData = SpeakingPromptData(

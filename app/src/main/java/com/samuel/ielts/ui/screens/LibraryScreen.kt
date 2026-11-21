@@ -1,5 +1,6 @@
 package com.samuel.ielts.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -20,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -31,6 +33,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -48,10 +51,16 @@ import com.samuel.ielts.ui.components.StreakFlameTile
 import com.samuel.ielts.ui.theme.IeltsSpacing
 
 private enum class BookFilter(val label: String) {
-    ALL("All Books"),
-    C20("C20"),
-    C21("C21"),
-    C19("C19")
+    ALL("All"),
+    C20("Cambridge 20"),
+    C21("Cambridge 21"),
+    C19("Cambridge 19")
+}
+
+internal fun plainBookName(book: IeltsBook): String = when (book) {
+    IeltsBook.C20 -> "Cambridge 20"
+    IeltsBook.C21 -> "Cambridge 21"
+    IeltsBook.C19 -> "Cambridge 19"
 }
 
 @Composable
@@ -79,22 +88,15 @@ fun LibraryScreen(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(IeltsSpacing.Md),
-        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
+        contentPadding = PaddingValues(IeltsSpacing.CardPadding),
+        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.SectionGap)
     ) {
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
-                Text(
-                    text = "Test Library",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Books C20, C21, and C19 with per-test Listening, Reading, Writing, and Speaking status.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = "Library",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
         }
 
         item {
@@ -107,8 +109,7 @@ fun LibraryScreen(
         if (topNextStep != null) {
             item {
                 NextStepCardsSection(
-                    title = "Recommended Next Step",
-                    subtitle = "Based on your weakest question type and recent attempts.",
+                    title = "Next Step",
                     steps = listOf(topNextStep),
                     onSelectStep = onSelectNextStep
                 )
@@ -135,30 +136,35 @@ fun LibraryScreen(
         visibleBooks.forEach { book ->
             val bookTests = groupedByBook[book].orEmpty().sortedBy { it.testNumber }
             val allSections = bookTests.flatMap { it.sectionStates() }
-            val seededSections = allSections.count { it.status != SectionStatus.LOCKED }
+            val availableSections = allSections.count { it.status != SectionStatus.LOCKED }
             val completedSections = allSections.count { it.status == SectionStatus.COMPLETED }
 
             item(key = "header_${book.code}") {
                 BookSectionHeader(
                     book = book,
-                    seededSections = seededSections,
-                    completedSections = completedSections,
-                    totalSections = allSections.size
+                    availableSections = availableSections,
+                    completedSections = completedSections
                 )
             }
 
-            items(items = bookTests, key = { it.id }) { test ->
-                PracticeTestCard(
-                    test = test,
-                    onOpenSkill = { skill ->
-                        when (skill) {
-                            IeltsSkill.LISTENING -> onOpenListening(test)
-                            IeltsSkill.READING -> onOpenReading(test)
-                            IeltsSkill.WRITING -> onOpenWriting(test)
-                            IeltsSkill.SPEAKING -> onOpenSpeaking(test)
+            if (availableSections == 0) {
+                item(key = "empty_${book.code}") {
+                    UnavailableBookCard(book = book)
+                }
+            } else {
+                items(items = bookTests, key = { it.id }) { test ->
+                    PracticeTestCard(
+                        test = test,
+                        onOpenSkill = { skill ->
+                            when (skill) {
+                                IeltsSkill.LISTENING -> onOpenListening(test)
+                                IeltsSkill.READING -> onOpenReading(test)
+                                IeltsSkill.WRITING -> onOpenWriting(test)
+                                IeltsSkill.SPEAKING -> onOpenSpeaking(test)
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
     }
@@ -167,41 +173,80 @@ fun LibraryScreen(
 @Composable
 private fun BookSectionHeader(
     book: IeltsBook,
-    seededSections: Int,
-    completedSections: Int,
-    totalSections: Int
+    availableSections: Int,
+    completedSections: Int
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = IeltsSpacing.Sm),
+            .padding(top = IeltsSpacing.Xs),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                imageVector = if (seededSections == 0) IeltsIcons.EmptyNoSeeds else IeltsIcons.Library,
-                contentDescription = if (seededSections == 0) "${book.title} locked" else "${book.title} available",
-                tint = if (seededSections == 0) LockedSlate else MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                imageVector = if (availableSections == 0) IeltsIcons.EmptyNoSeeds else IeltsIcons.Library,
+                contentDescription = plainBookName(book),
+                tint = if (availableSections == 0) LockedSlate else MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(IeltsSpacing.FeatureIcon)
             )
             Spacer(modifier = Modifier.width(IeltsSpacing.Sm))
             Text(
-                text = book.title,
+                text = plainBookName(book),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
         }
-        val statusSummary = if (seededSections == 0) {
-            "Seed missing (locked)"
+        val statusSummary = if (availableSections == 0) {
+            "Unavailable"
         } else {
-            "$completedSections/$seededSections done ($seededSections/$totalSections seeded)"
+            "$completedSections of $availableSections done"
         }
         Text(
             text = statusSummary,
             style = MaterialTheme.typography.labelMedium,
-            color = if (seededSections == 0) LockedSlate else MaterialTheme.colorScheme.onSurfaceVariant
+            color = if (availableSections == 0) LockedSlate else MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@Composable
+private fun UnavailableBookCard(
+    book: IeltsBook
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = LockedSlateBg,
+        border = BorderStroke(1.dp, NeutralBorder)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(IeltsSpacing.CardPadding),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
+        ) {
+            Icon(
+                imageVector = IeltsIcons.EmptyNoSeeds,
+                contentDescription = "Unavailable",
+                tint = LockedSlate,
+                modifier = Modifier.size(IeltsSpacing.FeatureIcon)
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
+                Text(
+                    text = "${plainBookName(book)} tests not added yet",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = LockedSlate
+                )
+                Text(
+                    text = "Choose another book above to practice.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = LockedSlate
+                )
+            }
+        }
     }
 }
 
@@ -210,9 +255,26 @@ private fun PracticeTestCard(
     test: PracticeTest,
     onOpenSkill: (IeltsSkill) -> Unit
 ) {
+    var expanded by rememberSaveable(test.id) { mutableStateOf(false) }
+
     val sectionStates = test.sectionStates()
-    val allSeededDone = sectionStates.any { it.status != SectionStatus.LOCKED } &&
-        sectionStates.filter { it.status != SectionStatus.LOCKED }.all { it.status == SectionStatus.COMPLETED }
+    val availableStates = sectionStates.filter { it.status != SectionStatus.LOCKED }
+    val completedCount = availableStates.count { it.status == SectionStatus.COMPLETED }
+    val recordedBands = listOfNotNull(
+        test.lastListeningBand,
+        test.lastReadingBand,
+        test.lastWritingBand,
+        test.lastSpeakingBand
+    )
+    val averageBand = recordedBands.takeIf { it.isNotEmpty() }?.let {
+        IeltsScoring.roundToHalfBand(it.average())
+    }
+
+    val helperLine = when {
+        !test.hasAnySeededSection -> "Unavailable"
+        averageBand != null -> "Band ${IeltsScoring.formatBand(averageBand)} ($completedCount of ${availableStates.size} done)"
+        else -> "Not marked yet"
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -221,7 +283,7 @@ private fun PracticeTestCard(
             containerColor = if (test.hasAnySeededSection) {
                 MaterialTheme.colorScheme.surface
             } else {
-                LockedSlateBg.copy(alpha = 0.65f)
+                LockedSlateBg.copy(alpha = 0.7f)
             }
         ),
         border = BorderStroke(1.dp, NeutralBorder)
@@ -229,168 +291,99 @@ private fun PracticeTestCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(IeltsSpacing.Md),
-            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                .then(
+                    if (test.hasAnySeededSection) {
+                        Modifier.clickable { expanded = !expanded }
+                    } else {
+                        Modifier
+                    }
+                )
+                .padding(IeltsSpacing.CardPadding),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
                 ) {
-                    Surface(
-                        color = if (test.hasAnySeededSection) BrandBlueSoft else LockedSlateBg,
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Text(
-                            text = "${test.book.code} Test ${test.testNumber}",
-                            modifier = Modifier.padding(horizontal = IeltsSpacing.Sm, vertical = IeltsSpacing.Xs),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (test.hasAnySeededSection) MaterialTheme.colorScheme.primary else LockedSlate
-                        )
-                    }
-
-                    if (!test.hasAnySeededSection) {
-                        Surface(
-                            color = LockedSlateBg,
-                            shape = MaterialTheme.shapes.small,
-                            border = BorderStroke(1.dp, NeutralBorder)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = IeltsSpacing.Sm, vertical = IeltsSpacing.Xs),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
-                            ) {
-                                Icon(
-                                    imageVector = IeltsIcons.EmptyNoSeeds,
-                                    contentDescription = "Locked",
-                                    tint = LockedSlate,
-                                    modifier = Modifier.size(IeltsSpacing.SmallIcon)
-                                )
-                                Text(
-                                    text = "Seed missing",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = LockedSlate,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-                    } else if (allSeededDone) {
-                        Surface(
-                            color = SuccessGreenBg,
-                            shape = MaterialTheme.shapes.small
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = IeltsSpacing.Sm, vertical = IeltsSpacing.Xs),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
-                            ) {
-                                Icon(
-                                    imageVector = IeltsIcons.Completed,
-                                    contentDescription = "Completed",
-                                    tint = SuccessGreen,
-                                    modifier = Modifier.size(IeltsSpacing.SmallIcon)
-                                )
-                                Text(
-                                    text = "Done",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = SuccessGreen,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-                    }
-                }
-
-                val scoreText = buildString {
-                    if (test.lastListeningBand != null) {
-                        append("L ${IeltsScoring.formatBand(test.lastListeningBand)}")
-                    }
-                    if (test.lastReadingBand != null) {
-                        if (isNotEmpty()) append(" ")
-                        append("R ${IeltsScoring.formatBand(test.lastReadingBand)}")
-                    }
-                    if (test.lastWritingBand != null) {
-                        if (isNotEmpty()) append(" ")
-                        append("W ${IeltsScoring.formatBand(test.lastWritingBand)}")
-                    }
-                    if (test.lastSpeakingBand != null) {
-                        if (isNotEmpty()) append(" ")
-                        append("S ${IeltsScoring.formatBand(test.lastSpeakingBand)}")
-                    }
-                }
-                if (scoreText.isNotEmpty()) {
                     Text(
-                        text = scoreText,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = BrandTeal
+                        text = "Test ${test.testNumber}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (test.hasAnySeededSection) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            LockedSlate
+                        }
+                    )
+                    Text(
+                        text = helperLine,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (averageBand != null) BrandTeal else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
+
+                Icon(
+                    imageVector = when {
+                        !test.hasAnySeededSection -> IeltsIcons.EmptyNoSeeds
+                        expanded -> IeltsIcons.ExpandLess
+                        else -> IeltsIcons.ExpandMore
+                    },
+                    contentDescription = if (expanded) "Collapse test" else "Expand test",
+                    tint = if (test.hasAnySeededSection) MaterialTheme.colorScheme.primary else LockedSlate,
+                    modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                )
             }
 
             if (test.hasAnySeededSection) {
-                Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
-                    if (test.readingStatus != SectionStatus.LOCKED) {
-                        Text(
-                            text = "Reading: ${test.readingTitle}",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    if (test.writingStatus != SectionStatus.LOCKED) {
-                        Text(
-                            text = "Writing: ${test.writingTopic}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                AnimatedVisibility(visible = expanded) {
+                    Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)) {
+                        HorizontalDivider(color = NeutralBorder)
+
+                        val listeningState = sectionStates[0]
+                        val readingState = sectionStates[1]
+                        val writingState = sectionStates[2]
+                        val speakingState = sectionStates[3]
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
+                        ) {
+                            SkillStatusTile(
+                                state = listeningState,
+                                onClick = { onOpenSkill(IeltsSkill.LISTENING) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            SkillStatusTile(
+                                state = readingState,
+                                onClick = { onOpenSkill(IeltsSkill.READING) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
+                        ) {
+                            SkillStatusTile(
+                                state = writingState,
+                                onClick = { onOpenSkill(IeltsSkill.WRITING) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            SkillStatusTile(
+                                state = speakingState,
+                                onClick = { onOpenSkill(IeltsSkill.SPEAKING) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
-            }
-
-            val listeningState = sectionStates[0]
-            val readingState = sectionStates[1]
-            val writingState = sectionStates[2]
-            val speakingState = sectionStates[3]
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
-            ) {
-                SkillStatusTile(
-                    state = listeningState,
-                    onClick = { onOpenSkill(IeltsSkill.LISTENING) },
-                    modifier = Modifier.weight(1f)
-                )
-                SkillStatusTile(
-                    state = readingState,
-                    onClick = { onOpenSkill(IeltsSkill.READING) },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
-            ) {
-                SkillStatusTile(
-                    state = writingState,
-                    onClick = { onOpenSkill(IeltsSkill.WRITING) },
-                    modifier = Modifier.weight(1f)
-                )
-                SkillStatusTile(
-                    state = speakingState,
-                    onClick = { onOpenSkill(IeltsSkill.SPEAKING) },
-                    modifier = Modifier.weight(1f)
-                )
             }
         }
     }
@@ -407,14 +400,14 @@ private fun SkillStatusTile(
 
     val containerColor = when (state.status) {
         SectionStatus.LOCKED -> LockedSlateBg
-        SectionStatus.AVAILABLE -> BrandBlueSoft.copy(alpha = 0.45f)
+        SectionStatus.AVAILABLE -> BrandBlueSoft.copy(alpha = 0.4f)
         SectionStatus.COMPLETED -> SuccessGreenBg
     }
 
     val borderColor = when (state.status) {
         SectionStatus.LOCKED -> NeutralBorder
-        SectionStatus.AVAILABLE -> BrandBlue.copy(alpha = 0.35f)
-        SectionStatus.COMPLETED -> SuccessGreen.copy(alpha = 0.4f)
+        SectionStatus.AVAILABLE -> BrandBlue.copy(alpha = 0.3f)
+        SectionStatus.COMPLETED -> SuccessGreen.copy(alpha = 0.35f)
     }
 
     val accentColor = when (state.status) {
@@ -424,15 +417,15 @@ private fun SkillStatusTile(
     }
 
     val statusText = when {
-        isLocked -> "Locked"
+        isLocked -> "Unavailable"
         isDone && state.lastBand != null -> "Band ${IeltsScoring.formatBand(state.lastBand)}"
         isDone -> "Done"
-        else -> "Ready"
+        else -> "Start"
     }
 
     Surface(
         modifier = modifier
-            .defaultMinSize(minHeight = 64.dp)
+            .defaultMinSize(minHeight = 60.dp)
             .then(
                 if (!isLocked) {
                     Modifier.clickable(onClick = onClick)
@@ -447,10 +440,16 @@ private fun SkillStatusTile(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = IeltsSpacing.Sm, vertical = IeltsSpacing.Sm),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(horizontal = IeltsSpacing.ItemGap, vertical = IeltsSpacing.ItemGap),
+            horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Icon(
+                imageVector = if (isLocked) IeltsIcons.EmptyNoSeeds else skillIcon(state.skill),
+                contentDescription = state.skill.label,
+                tint = accentColor,
+                modifier = Modifier.size(IeltsSpacing.FeatureIcon)
+            )
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -471,25 +470,14 @@ private fun SkillStatusTile(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = state.subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isLocked) LockedSlate else MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
             }
-            Spacer(modifier = Modifier.width(IeltsSpacing.Xs))
-            Icon(
-                imageVector = when (state.status) {
-                    SectionStatus.LOCKED -> IeltsIcons.EmptyNoSeeds
-                    SectionStatus.AVAILABLE -> IeltsIcons.PlayAudio
-                    SectionStatus.COMPLETED -> IeltsIcons.Completed
-                },
-                contentDescription = "${state.skill.label} ${state.status.label}",
-                tint = accentColor,
-                modifier = Modifier.size(IeltsSpacing.ActionIcon)
-            )
         }
     }
+}
+
+private fun skillIcon(skill: IeltsSkill): ImageVector = when (skill) {
+    IeltsSkill.LISTENING -> IeltsIcons.Listening
+    IeltsSkill.READING -> IeltsIcons.Reading
+    IeltsSkill.WRITING -> IeltsIcons.Writing
+    IeltsSkill.SPEAKING -> IeltsIcons.Speaking
 }

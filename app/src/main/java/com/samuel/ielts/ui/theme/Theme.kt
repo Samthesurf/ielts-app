@@ -11,13 +11,16 @@ import androidx.compose.ui.unit.dp
 object IeltsSpacing {
     val Xs = 4.dp
     val Sm = 8.dp
+    val ItemGap = 12.dp
     val Md = 16.dp
+    val CardPadding = 20.dp
+    val SectionGap = 20.dp
     val Lg = 24.dp
     val Xl = 32.dp
     val TouchTarget = 48.dp
     val SmallIcon = 16.dp
     val NavIcon = 24.dp
-    val ActionIcon = 20.dp
+    val ActionIcon = 24.dp
     val FeatureIcon = 24.dp
     val HeroIcon = 24.dp
 }

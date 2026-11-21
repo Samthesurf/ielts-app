@@ -72,18 +72,18 @@ fun SettingsScreen(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(IeltsSpacing.Md),
-        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
+        contentPadding = PaddingValues(IeltsSpacing.CardPadding),
+        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.SectionGap)
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
                 Text(
-                    text = "AI Marker Settings",
+                    text = "Settings",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Configure your Meta-compatible chat completions endpoint and model.",
+                    text = "AI writing examiner connection.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -100,7 +100,7 @@ fun SettingsScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(IeltsSpacing.Md),
+                        .padding(IeltsSpacing.CardPadding),
                     verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
                 ) {
                     OutlinedTextField(
@@ -108,11 +108,8 @@ fun SettingsScreen(
                         onValueChange = onBaseUrlChange,
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        label = { Text("Base URL") },
-                        placeholder = { Text(DEFAULT_API_BASE_URL) },
-                        supportingText = {
-                            Text("Default: $DEFAULT_API_BASE_URL (OpenAI-compatible v1 endpoint)")
-                        }
+                        label = { Text("Server URL") },
+                        placeholder = { Text(DEFAULT_API_BASE_URL) }
                     )
 
                     OutlinedTextField(
@@ -141,9 +138,6 @@ fun SettingsScreen(
                                     modifier = Modifier.size(IeltsSpacing.ActionIcon)
                                 )
                             }
-                        },
-                        supportingText = {
-                            Text("Stored in app state only during this session unless persisted by caller.")
                         }
                     )
 
@@ -153,10 +147,7 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         label = { Text("Model") },
-                        placeholder = { Text(DEFAULT_API_MODEL) },
-                        supportingText = {
-                            Text("Default: $DEFAULT_API_MODEL")
-                        }
+                        placeholder = { Text(DEFAULT_API_MODEL) }
                     )
 
                     Button(
@@ -173,7 +164,7 @@ fun SettingsScreen(
                                 color = MaterialTheme.colorScheme.onPrimary
                             )
                             Spacer(modifier = Modifier.width(IeltsSpacing.Sm))
-                            Text("Testing Connection...")
+                            Text("Testing...")
                         } else {
                             Text("Test Connection")
                         }
@@ -182,8 +173,10 @@ fun SettingsScreen(
             }
         }
 
-        item {
-            SettingsConnectionResultCard(testState = testState)
+        if (testState !is SettingsTestState.Idle) {
+            item {
+                SettingsConnectionResultCard(testState = testState)
+            }
         }
     }
 }
@@ -193,33 +186,19 @@ private fun SettingsConnectionResultCard(
     testState: SettingsTestState
 ) {
     when (testState) {
-        SettingsTestState.Idle -> {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                border = BorderStroke(1.dp, NeutralBorder)
-            ) {
-                Text(
-                    text = "Status: Idle. Tap Test Connection to verify reachability and latency.",
-                    modifier = Modifier.padding(IeltsSpacing.Md),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        SettingsTestState.Idle -> Unit
 
         SettingsTestState.Loading -> {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
+                shape = MaterialTheme.shapes.large,
                 color = BrandBlueSoft.copy(alpha = 0.55f),
                 border = BorderStroke(1.dp, BrandBlue.copy(alpha = 0.3f))
             ) {
                 Row(
-                    modifier = Modifier.padding(IeltsSpacing.Md),
+                    modifier = Modifier.padding(IeltsSpacing.CardPadding),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
                 ) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
@@ -227,7 +206,7 @@ private fun SettingsConnectionResultCard(
                         color = BrandBlue
                     )
                     Text(
-                        text = "Checking endpoint connection...",
+                        text = "Checking connection...",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = BrandBlue
@@ -239,20 +218,20 @@ private fun SettingsConnectionResultCard(
         is SettingsTestState.Success -> {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
+                shape = MaterialTheme.shapes.large,
                 color = SuccessGreenBg,
                 border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.4f))
             ) {
                 Row(
-                    modifier = Modifier.padding(IeltsSpacing.Md),
+                    modifier = Modifier.padding(IeltsSpacing.CardPadding),
                     verticalAlignment = Alignment.Top,
-                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
                 ) {
                     Icon(
                         imageVector = IeltsIcons.TestConnectionCheck,
-                        contentDescription = "Connection succeeded",
+                        contentDescription = "Connected",
                         tint = SuccessGreen,
-                        modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                        modifier = Modifier.size(IeltsSpacing.FeatureIcon)
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
                         Text(
@@ -277,20 +256,20 @@ private fun SettingsConnectionResultCard(
             val safeMessage = sanitizeUserErrorMessage(testState.message)
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
+                shape = MaterialTheme.shapes.large,
                 color = ErrorRedBg,
                 border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.4f))
             ) {
                 Row(
-                    modifier = Modifier.padding(IeltsSpacing.Md),
+                    modifier = Modifier.padding(IeltsSpacing.CardPadding),
                     verticalAlignment = Alignment.Top,
-                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
                 ) {
                     Icon(
                         imageVector = IeltsIcons.OfflineWarning,
-                        contentDescription = "Connection failed warning",
+                        contentDescription = "Connection failed",
                         tint = ErrorRed,
-                        modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                        modifier = Modifier.size(IeltsSpacing.FeatureIcon)
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
                         Text(

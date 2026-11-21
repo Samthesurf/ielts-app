@@ -50,10 +50,10 @@ object SeedCatalogLoader {
                             id = id,
                             book = book,
                             testNumber = testNo,
-                            readingTitle = "Reading seed not loaded yet",
-                            writingTopic = "Writing seed not loaded yet",
-                            listeningTitle = "Listening seed not loaded yet",
-                            speakingTopic = "Speaking seed not loaded yet",
+                            readingTitle = "Not available yet",
+                            writingTopic = "Not available yet",
+                            listeningTitle = "Not available yet",
+                            speakingTopic = "Not available yet",
                             listeningStatus = SectionStatus.LOCKED,
                             readingStatus = SectionStatus.LOCKED,
                             writingStatus = SectionStatus.LOCKED,
@@ -109,22 +109,22 @@ object SeedCatalogLoader {
                 val readingTitle = readingSections
                     .mapNotNull { it.passage?.title?.takeIf(String::isNotBlank) }
                     .firstOrNull()
-                    ?: if (hasReading) "Reading Passages 1 to 3" else "Seed missing"
+                    ?: if (hasReading) "Reading Passages 1 to 3" else "Not available yet"
 
                 val writingTopic = wsData?.writingSummary
                     ?.takeIf(String::isNotBlank)
-                    ?: if (hasWriting) "Writing Task 1 and Task 2" else "Seed missing"
+                    ?: if (hasWriting) "Writing Task 1 and Task 2" else "Not available yet"
 
                 val listeningTitle = if (hasListening) {
                     val totalQ = listeningSections.sumOf { it.questions.size }
                     "Sections 1 to 4 ($totalQ questions)"
                 } else {
-                    "Seed missing"
+                    "Not available yet"
                 }
 
                 val speakingTopic = wsData?.speaking?.topicSummary
                     ?.takeIf(String::isNotBlank)
-                    ?: if (hasSpeaking) "Parts 1 to 3" else "Seed missing"
+                    ?: if (hasSpeaking) "Parts 1 to 3" else "Not available yet"
 
                 val practiceTest = PracticeTest(
                     id = id,
@@ -283,7 +283,7 @@ object SeedCatalogLoader {
                 val questions = secGroups.flatMapIndexed { gIdx, g ->
                     convertGroupQuestions(
                         prefix = "${id}_l${secNum}_g$gIdx",
-                        sectionHint = "Listening S$secNum",
+                        sectionHint = "Section $secNum",
                         group = g
                     )
                 }.sortedBy { it.number }
@@ -293,7 +293,7 @@ object SeedCatalogLoader {
                     id = "${id}_l$secNum",
                     skill = QuizSkillMode.LISTENING,
                     sectionNumber = secNum,
-                    shortLabel = "S$secNum",
+                    shortLabel = "Section $secNum",
                     title = "Listening Section $secNum ($qRange)",
                     instructions = secGroups.firstOrNull()?.instructions.orEmpty(),
                     passage = null,
@@ -311,7 +311,7 @@ object SeedCatalogLoader {
                     paragraphs = listOf(
                         PassageParagraph(
                             label = "A",
-                            text = "Passage text was not included in this seed file. You can still answer and check all questions below."
+                            text = "Passage text is not included for this test. You can still answer and check all questions below."
                         )
                     )
                 )
@@ -329,7 +329,7 @@ object SeedCatalogLoader {
                     id = "${id}_r$pNum",
                     skill = QuizSkillMode.READING,
                     sectionNumber = pNum,
-                    shortLabel = "P$pNum",
+                    shortLabel = "Passage $pNum",
                     title = "Passage $pNum: ${passage.title} ($qRange)",
                     instructions = secGroups.firstOrNull()?.instructions.orEmpty(),
                     passage = passage,
@@ -370,15 +370,10 @@ object SeedCatalogLoader {
                     taskType = WritingTaskType.TASK_1,
                     prompt = task1Prompt,
                     initialDraft = "",
-                    scores = listOf(
-                        CriterionScore(WritingCriterion.TA, 0.0, "Tap Review Draft to get a Task Achievement score."),
-                        CriterionScore(WritingCriterion.CC, 0.0, "Tap Review Draft to get a Coherence and Cohesion score."),
-                        CriterionScore(WritingCriterion.LR, 0.0, "Tap Review Draft to get a Lexical Resource score."),
-                        CriterionScore(WritingCriterion.GRA, 0.0, "Tap Review Draft to get a Grammatical Range and Accuracy score.")
-                    ),
+                    scores = emptyList(),
                     inlineComments = emptyList(),
-                    band75Rewrite = "Submit your draft with Review Draft to generate a Band 7.5 rewrite.",
-                    band8Model = "Submit your draft with Review Draft to generate a Band 8.0 model answer.",
+                    band75Rewrite = "",
+                    band8Model = "",
                     chartAssetPath = chartImage
                 )
             } else {
@@ -390,15 +385,10 @@ object SeedCatalogLoader {
                     taskType = WritingTaskType.TASK_2,
                     prompt = task2Prompt,
                     initialDraft = "",
-                    scores = listOf(
-                        CriterionScore(WritingCriterion.TR, 0.0, "Tap Review Draft to get a Task Response score."),
-                        CriterionScore(WritingCriterion.CC, 0.0, "Tap Review Draft to get a Coherence and Cohesion score."),
-                        CriterionScore(WritingCriterion.LR, 0.0, "Tap Review Draft to get a Lexical Resource score."),
-                        CriterionScore(WritingCriterion.GRA, 0.0, "Tap Review Draft to get a Grammatical Range and Accuracy score.")
-                    ),
+                    scores = emptyList(),
                     inlineComments = emptyList(),
-                    band75Rewrite = "Submit your draft with Review Draft to generate a Band 7.5 rewrite.",
-                    band8Model = "Submit your draft with Review Draft to generate a Band 8.0 model answer."
+                    band75Rewrite = "",
+                    band8Model = ""
                 )
             } else {
                 null

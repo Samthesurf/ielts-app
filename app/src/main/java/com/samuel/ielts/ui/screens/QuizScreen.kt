@@ -28,13 +28,13 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -78,6 +78,7 @@ fun QuizScreen(
     listeningSections: List<QuizSectionBundle>,
     readingSections: List<QuizSectionBundle>,
     onQuizSubmitted: (QuizAttemptSummary) -> Unit,
+    onOpenLibrary: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val sections = if (activeSkill == QuizSkillMode.LISTENING) {
@@ -90,7 +91,8 @@ fun QuizScreen(
     val safeSectionIndex = selectedSectionIndex.coerceIn(0, (sections.size - 1).coerceAtLeast(0))
     val currentSection = sections.getOrNull(safeSectionIndex)
 
-    var passageExpanded by rememberSaveable(testId, activeSkill.name) { mutableStateOf(true) }
+    // Progressive disclosure: reading passage collapsed by default.
+    var passageExpanded by rememberSaveable(testId, activeSkill.name) { mutableStateOf(false) }
     var selectedParagraph by rememberSaveable(currentSection?.id ?: testId) {
         mutableStateOf(currentSection?.passage?.paragraphs?.firstOrNull()?.label ?: "A")
     }
@@ -143,16 +145,33 @@ fun QuizScreen(
         HorizontalDivider(color = NeutralBorder)
 
         if (currentSection == null) {
+            val otherSkill = if (activeSkill == QuizSkillMode.LISTENING) {
+                QuizSkillMode.READING
+            } else {
+                QuizSkillMode.LISTENING
+            }
+            val otherAvailable = if (otherSkill == QuizSkillMode.LISTENING) {
+                listeningSections.isNotEmpty()
+            } else {
+                readingSections.isNotEmpty()
+            }
             LockedQuizPlaceholder(
                 testLabel = testLabel,
-                skill = activeSkill
+                skill = activeSkill,
+                ctaLabel = if (otherAvailable) "Switch to ${otherSkill.label}" else "Open Library",
+                onCtaClick = {
+                    if (otherAvailable) {
+                        onSelectSkill(otherSkill)
+                    } else {
+                        onOpenLibrary()
+                    }
+                }
             )
             return@Column
         }
 
         if (activeSkill == QuizSkillMode.READING && currentSection.passage != null) {
             PassagePane(
-                testLabel = "$testLabel ${currentSection.shortLabel}",
                 passage = currentSection.passage,
                 expanded = passageExpanded,
                 selectedParagraph = selectedParagraph,
@@ -161,10 +180,7 @@ fun QuizScreen(
             )
             HorizontalDivider(color = NeutralBorder)
         } else if (activeSkill == QuizSkillMode.LISTENING) {
-            ListeningSectionBanner(
-                testLabel = testLabel,
-                section = currentSection
-            )
+            ListeningSectionBanner(section = currentSection)
             HorizontalDivider(color = NeutralBorder)
         }
 
@@ -172,8 +188,8 @@ fun QuizScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            contentPadding = PaddingValues(IeltsSpacing.Md),
-            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
+            contentPadding = PaddingValues(IeltsSpacing.CardPadding),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.SectionGap)
         ) {
             if (checked) {
                 item {
@@ -190,7 +206,7 @@ fun QuizScreen(
                     )
                     ResultBanner(
                         skill = activeSkill,
-                        sectionLabel = currentSection.shortLabel,
+                        sectionLabel = plainSectionLabel(currentSection.shortLabel),
                         sectionCorrect = sectionCorrectCount,
                         sectionTotal = sectionQuestions.size,
                         totalCorrect = totalCorrectCount,
@@ -250,7 +266,7 @@ fun QuizScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = IeltsSpacing.Xs, bottom = IeltsSpacing.Md),
-                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
                 ) {
                     // Word-count warnings never block quiz submission.
                     Button(
@@ -304,6 +320,16 @@ fun QuizScreen(
     }
 }
 
+private fun plainSectionLabel(shortLabel: String): String {
+    return when {
+        shortLabel.startsWith("S") && shortLabel.drop(1).all(Char::isDigit) ->
+            "Section ${shortLabel.drop(1)}"
+        shortLabel.startsWith("P") && shortLabel.drop(1).all(Char::isDigit) ->
+            "Passage ${shortLabel.drop(1)}"
+        else -> shortLabel
+    }
+}
+
 @Composable
 private fun QuizHeaderControls(
     testLabel: String,
@@ -322,8 +348,8 @@ private fun QuizHeaderControls(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(horizontal = IeltsSpacing.CardPadding, vertical = IeltsSpacing.ItemGap),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -331,23 +357,23 @@ private fun QuizHeaderControls(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "$testLabel Quiz",
+                    text = testLabel,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)) {
                     FilterChip(
                         selected = activeSkill == QuizSkillMode.LISTENING,
                         onClick = { onSelectSkill(QuizSkillMode.LISTENING) },
                         label = {
-                            Text(if (hasListening) "Listening S1-S4" else "Listening (Locked)")
+                            Text(if (hasListening) "Listening" else "Listening (Off)")
                         }
                     )
                     FilterChip(
                         selected = activeSkill == QuizSkillMode.READING,
                         onClick = { onSelectSkill(QuizSkillMode.READING) },
                         label = {
-                            Text(if (hasReading) "Reading P1-P3" else "Reading (Locked)")
+                            Text(if (hasReading) "Reading" else "Reading (Off)")
                         }
                     )
                 }
@@ -358,20 +384,13 @@ private fun QuizHeaderControls(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
                 ) {
                     sections.forEachIndexed { index, section ->
-                        val qFirst = section.questions.firstOrNull()?.number
-                        val qLast = section.questions.lastOrNull()?.number
-                        val rangeSuffix = if (qFirst != null && qLast != null) {
-                            " (Q$qFirst-$qLast)"
-                        } else {
-                            ""
-                        }
                         FilterChip(
                             selected = selectedSectionIndex == index,
                             onClick = { onSelectSection(index) },
-                            label = { Text("${section.shortLabel}$rangeSuffix") }
+                            label = { Text(plainSectionLabel(section.shortLabel)) }
                         )
                     }
                 }
@@ -383,44 +402,52 @@ private fun QuizHeaderControls(
 @Composable
 private fun LockedQuizPlaceholder(
     testLabel: String,
-    skill: QuizSkillMode
+    skill: QuizSkillMode,
+    ctaLabel: String,
+    onCtaClick: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(IeltsSpacing.Lg),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Surface(
             color = LockedSlateBg,
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             border = BorderStroke(1.dp, NeutralBorder),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier.padding(IeltsSpacing.Lg),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
             ) {
                 Icon(
                     imageVector = IeltsIcons.EmptyNoSeeds,
-                    contentDescription = "Locked",
+                    contentDescription = "Unavailable",
                     tint = LockedSlate,
                     modifier = Modifier.size(IeltsSpacing.HeroIcon)
                 )
                 Text(
-                    text = "$testLabel ${skill.label} is locked",
+                    text = "$testLabel ${skill.label} not available",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "The seed file for this book section is missing. Pick an unlocked test from Library or switch to an available skill.",
+                    text = "Choose another test or skill to practice.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
+                Button(
+                    onClick = onCtaClick,
+                    modifier = Modifier.height(IeltsSpacing.TouchTarget)
+                ) {
+                    Text(ctaLabel)
+                }
             }
         }
     }
@@ -428,21 +455,20 @@ private fun LockedQuizPlaceholder(
 
 @Composable
 private fun ListeningSectionBanner(
-    testLabel: String,
     section: QuizSectionBundle
 ) {
     Surface(
-        color = BrandTealSoft.copy(alpha = 0.55f),
+        color = BrandTealSoft.copy(alpha = 0.45f),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(horizontal = IeltsSpacing.CardPadding, vertical = IeltsSpacing.ItemGap),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
         ) {
             Text(
-                text = "$testLabel: ${section.title}",
+                text = section.title,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = BrandTeal
@@ -460,7 +486,6 @@ private fun ListeningSectionBanner(
 
 @Composable
 private fun PassagePane(
-    testLabel: String,
     passage: ReadingPassage,
     expanded: Boolean,
     selectedParagraph: String,
@@ -470,9 +495,9 @@ private fun PassagePane(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val rangeLabel = if (passage.paragraphs.size >= 2) {
-        "Passage Pane ${passage.paragraphs.first().label} to ${passage.paragraphs.last().label}"
+        "Paragraphs ${passage.paragraphs.first().label} to ${passage.paragraphs.last().label}"
     } else {
-        "Passage Pane A to G"
+        "Reading passage"
     }
 
     Surface(
@@ -482,8 +507,8 @@ private fun PassagePane(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(horizontal = IeltsSpacing.CardPadding, vertical = IeltsSpacing.ItemGap),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
         ) {
             Row(
                 modifier = Modifier
@@ -492,49 +517,46 @@ private fun PassagePane(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
                     Text(
-                        text = "$testLabel: ${passage.title}",
+                        text = passage.title,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = rangeLabel,
-                        style = MaterialTheme.typography.labelMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
+                ) {
                     Text(
-                        text = if (expanded) "Hide" else "Show",
+                        text = if (expanded) "Hide" else "Read",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    IconButton(
-                        onClick = onToggleExpanded,
-                        modifier = Modifier.size(IeltsSpacing.TouchTarget)
-                    ) {
-                        Icon(
-                            imageVector = if (expanded) {
-                                IeltsIcons.ExpandLess
-                            } else {
-                                IeltsIcons.ExpandMore
-                            },
-                            contentDescription = if (expanded) "Collapse passage" else "Expand passage",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(IeltsSpacing.ActionIcon)
-                        )
-                    }
+                    Icon(
+                        imageVector = if (expanded) IeltsIcons.ExpandLess else IeltsIcons.ExpandMore,
+                        contentDescription = if (expanded) "Hide passage" else "Show passage",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                    )
                 }
             }
 
             AnimatedVisibility(visible = expanded) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
                     ) {
                         passage.paragraphs.forEachIndexed { index, paragraph ->
                             FilterChip(
@@ -545,7 +567,7 @@ private fun PassagePane(
                                         listState.animateScrollToItem(index)
                                     }
                                 },
-                                label = { Text("Para ${paragraph.label}") }
+                                label = { Text(paragraph.label) }
                             )
                         }
                     }
@@ -554,8 +576,8 @@ private fun PassagePane(
                         state = listState,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 220.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                            .heightIn(max = 240.dp),
+                        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
                     ) {
                         items(items = passage.paragraphs, key = { it.label }) { paragraph ->
                             ParagraphItem(
@@ -581,7 +603,7 @@ private fun ParagraphItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(10.dp),
+        shape = MaterialTheme.shapes.medium,
         color = if (highlighted) BrandBlueSoft.copy(alpha = 0.45f) else MaterialTheme.colorScheme.surfaceVariant,
         border = BorderStroke(
             width = 1.dp,
@@ -589,8 +611,8 @@ private fun ParagraphItem(
         )
     ) {
         Row(
-            modifier = Modifier.padding(10.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(IeltsSpacing.ItemGap),
+            horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap),
             verticalAlignment = Alignment.Top
         ) {
             Surface(
@@ -599,7 +621,7 @@ private fun ParagraphItem(
             ) {
                 Text(
                     text = paragraph.label,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    modifier = Modifier.padding(horizontal = IeltsSpacing.Sm, vertical = IeltsSpacing.Xs),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimary
@@ -625,61 +647,78 @@ private fun ResultBanner(
     estimatedBand: Double,
     typeBreakdown: Map<QuestionTypeCategory, Pair<Int, Int>>
 ) {
+    var showBreakdown by rememberSaveable { mutableStateOf(false) }
+
     Surface(
         color = SuccessGreenBg,
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.large,
         border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.4f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(IeltsSpacing.CardPadding),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
         ) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    imageVector = IeltsIcons.Completed,
-                    contentDescription = "Quiz score checked",
-                    tint = SuccessGreen,
-                    modifier = Modifier.size(IeltsSpacing.FeatureIcon)
-                )
-                Column {
-                    Text(
-                        text = "${skill.label} Score: $totalCorrect / $totalCount ($sectionLabel: $sectionCorrect / $sectionTotal)",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = SuccessGreen
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = IeltsIcons.Completed,
+                        contentDescription = "Quiz checked",
+                        tint = SuccessGreen,
+                        modifier = Modifier.size(IeltsSpacing.FeatureIcon)
                     )
-                    Text(
-                        text = "Estimated ${skill.label} Band: ${IeltsScoring.formatBand(estimatedBand)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = SuccessGreen
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "Band ${IeltsScoring.formatBand(estimatedBand)} (${totalCorrect} / $totalCount)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = SuccessGreen
+                        )
+                        Text(
+                            text = "$sectionLabel: $sectionCorrect / $sectionTotal",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SuccessGreen
+                        )
+                    }
+                }
+                if (typeBreakdown.isNotEmpty()) {
+                    TextButton(onClick = { showBreakdown = !showBreakdown }) {
+                        Text(
+                            text = if (showBreakdown) "Hide" else "Breakdown",
+                            color = SuccessGreen
+                        )
+                    }
                 }
             }
 
             if (typeBreakdown.isNotEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    typeBreakdown.forEach { (category, pair) ->
-                        Surface(
-                            color = MaterialTheme.colorScheme.surface,
-                            shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.35f))
-                        ) {
-                            Text(
-                                text = "${category.tag}: ${pair.first}/${pair.second}",
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = SuccessGreen
-                            )
+                AnimatedVisibility(visible = showBreakdown) {
+                    Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
+                        typeBreakdown.forEach { (category, pair) ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = plainQuestionTypeName(category),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = SuccessGreen
+                                )
+                                Text(
+                                    text = "${pair.first} / ${pair.second}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = SuccessGreen
+                                )
+                            }
                         }
                     }
                 }
@@ -692,34 +731,28 @@ private fun ResultBanner(
 private fun QuestionHeader(
     number: Int,
     typeLabel: String,
-    typeIcon: ImageVector,
-    paragraphHint: String
+    typeIcon: ImageVector
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(
-                imageVector = typeIcon,
-                contentDescription = typeLabel,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(IeltsSpacing.SmallIcon)
-            )
-            Text(
-                text = "Question $number ($typeLabel)",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
+        Icon(
+            imageVector = typeIcon,
+            contentDescription = typeLabel,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(IeltsSpacing.FeatureIcon)
+        )
         Text(
-            text = paragraphHint,
-            style = MaterialTheme.typography.labelSmall,
+            text = "Question $number",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = typeLabel,
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
@@ -738,28 +771,19 @@ private fun McqQuestionCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, NeutralBorder)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(IeltsSpacing.CardPadding),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
         ) {
             QuestionHeader(
                 number = question.number,
-                typeLabel = if (isMulti) "MCQ - Pick ${question.requiredSelections}" else "MCQ",
-                typeIcon = IeltsIcons.QuizMcq,
-                paragraphHint = question.paragraphHint
+                typeLabel = if (isMulti) "Choose ${question.requiredSelections}" else "Multiple Choice",
+                typeIcon = IeltsIcons.QuizMcq
             )
-
-            if (question.instructions.isNotBlank()) {
-                Text(
-                    text = question.instructions,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
 
             Text(
                 text = question.prompt,
@@ -769,38 +793,40 @@ private fun McqQuestionCard(
 
             if (isMulti) {
                 Text(
-                    text = "Selected ${selectedIndices.size} of ${question.requiredSelections} required option(s).",
-                    style = MaterialTheme.typography.labelSmall,
+                    text = "Selected ${selectedIndices.size} of ${question.requiredSelections}",
+                    style = MaterialTheme.typography.bodySmall,
                     color = if (overSelected) WarningAmber else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            question.options.forEachIndexed { index, option ->
-                val label = question.labelForIndex(index)
-                val isSelected = index in selectedIndices
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onToggleOption(index) }
-                        .padding(vertical = 3.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (isMulti) {
-                        Checkbox(
-                            checked = isSelected,
-                            onCheckedChange = { onToggleOption(index) }
-                        )
-                    } else {
-                        RadioButton(
-                            selected = isSelected,
-                            onClick = { onToggleOption(index) }
+            Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
+                question.options.forEachIndexed { index, option ->
+                    val label = question.labelForIndex(index)
+                    val isSelected = index in selectedIndices
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onToggleOption(index) }
+                            .padding(vertical = IeltsSpacing.Xs),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (isMulti) {
+                            Checkbox(
+                                checked = isSelected,
+                                onCheckedChange = { onToggleOption(index) }
+                            )
+                        } else {
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = { onToggleOption(index) }
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(IeltsSpacing.Sm))
+                        Text(
+                            text = "$label. $option",
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "$label. $option",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
                 }
             }
 
@@ -832,19 +858,18 @@ private fun TfngQuestionCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, NeutralBorder)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.padding(IeltsSpacing.CardPadding),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
         ) {
             QuestionHeader(
                 number = question.number,
-                typeLabel = "T/F/NG",
-                typeIcon = IeltsIcons.QuizTfng,
-                paragraphHint = question.paragraphHint
+                typeLabel = "True / False / Not Given",
+                typeIcon = IeltsIcons.QuizTfng
             )
             Text(
                 text = question.prompt,
@@ -854,7 +879,7 @@ private fun TfngQuestionCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
             ) {
                 TfngOption.entries.forEach { option ->
                     val selected = selectedOption == option
@@ -862,7 +887,7 @@ private fun TfngQuestionCard(
                         modifier = Modifier
                             .weight(1f)
                             .clickable { onSelect(option) },
-                        shape = RoundedCornerShape(10.dp),
+                        shape = MaterialTheme.shapes.medium,
                         color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                         border = BorderStroke(
                             1.dp,
@@ -871,7 +896,7 @@ private fun TfngQuestionCard(
                     ) {
                         Text(
                             text = option.label,
-                            modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+                            modifier = Modifier.padding(vertical = IeltsSpacing.ItemGap, horizontal = IeltsSpacing.Xs),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center,
@@ -906,19 +931,18 @@ private fun YnngQuestionCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, NeutralBorder)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.padding(IeltsSpacing.CardPadding),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
         ) {
             QuestionHeader(
                 number = question.number,
-                typeLabel = "Y/N/NG",
-                typeIcon = IeltsIcons.QuizYnng,
-                paragraphHint = question.paragraphHint
+                typeLabel = "Yes / No / Not Given",
+                typeIcon = IeltsIcons.QuizYnng
             )
             Text(
                 text = question.prompt,
@@ -928,7 +952,7 @@ private fun YnngQuestionCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
             ) {
                 YnngOption.entries.forEach { option ->
                     val selected = selectedOption == option
@@ -936,7 +960,7 @@ private fun YnngQuestionCard(
                         modifier = Modifier
                             .weight(1f)
                             .clickable { onSelect(option) },
-                        shape = RoundedCornerShape(10.dp),
+                        shape = MaterialTheme.shapes.medium,
                         color = if (selected) BrandTeal else MaterialTheme.colorScheme.surfaceVariant,
                         border = BorderStroke(
                             1.dp,
@@ -945,7 +969,7 @@ private fun YnngQuestionCard(
                     ) {
                         Text(
                             text = option.label,
-                            modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+                            modifier = Modifier.padding(vertical = IeltsSpacing.ItemGap, horizontal = IeltsSpacing.Xs),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center,
@@ -982,34 +1006,26 @@ private fun FillBlankQuestionCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, NeutralBorder)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(IeltsSpacing.CardPadding),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.ItemGap)
         ) {
             QuestionHeader(
                 number = question.number,
-                typeLabel = "Fill-Blank",
-                typeIcon = IeltsIcons.QuizFillBlank,
-                paragraphHint = question.paragraphHint
+                typeLabel = "Fill in the Blank",
+                typeIcon = IeltsIcons.QuizFillBlank
             )
 
-            Surface(
-                color = WarningAmberBg,
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "Word hint: ${question.wordLimitHint}",
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = WarningAmber
-                )
-            }
+            Text(
+                text = "Limit: ${question.wordLimitHint}",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = WarningAmber
+            )
 
             Text(
                 text = question.prompt,
@@ -1022,36 +1038,33 @@ private fun FillBlankQuestionCard(
                 onValueChange = onValueChange,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                label = { Text("Type your answer") },
-                supportingText = {
-                    val limitLabel = if (question.maxWords == 1) "1 word hint" else "${question.maxWords} words hint"
-                    Text(
-                        text = if (overWordLimit) {
-                            "Word warning: $wordCount words typed ($limitLabel). Submission still allowed."
-                        } else {
-                            "$wordCount word(s) typed ($limitLabel)"
-                        },
-                        color = if (overWordLimit) WarningAmber else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                label = { Text("Your answer") }
             )
 
             if (overWordLimit) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                Surface(
+                    color = WarningAmberBg,
+                    shape = MaterialTheme.shapes.small,
+                    border = BorderStroke(1.dp, WarningAmber.copy(alpha = 0.35f)),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        imageVector = IeltsIcons.Warning,
-                        contentDescription = "Word limit warning",
-                        tint = WarningAmber,
-                        modifier = Modifier.size(IeltsSpacing.ActionIcon)
-                    )
-                    Text(
-                        text = "Warning: your answer exceeds the word hint. You can still submit.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = WarningAmber
-                    )
+                    Row(
+                        modifier = Modifier.padding(IeltsSpacing.Sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                    ) {
+                        Icon(
+                            imageVector = IeltsIcons.Warning,
+                            contentDescription = "Word limit warning",
+                            tint = WarningAmber,
+                            modifier = Modifier.size(IeltsSpacing.FeatureIcon)
+                        )
+                        Text(
+                            text = "Word warning: $wordCount words (limit ${question.maxWords}). You can still submit.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = WarningAmber
+                        )
+                    }
                 }
             }
 
@@ -1076,12 +1089,12 @@ private fun AnswerFeedbackChip(
 ) {
     Surface(
         color = if (isCorrect) SuccessGreenBg else ErrorRedBg,
-        shape = RoundedCornerShape(8.dp),
+        shape = MaterialTheme.shapes.small,
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(
             text = message,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = IeltsSpacing.ItemGap, vertical = IeltsSpacing.Sm),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = if (isCorrect) SuccessGreen else ErrorRed
