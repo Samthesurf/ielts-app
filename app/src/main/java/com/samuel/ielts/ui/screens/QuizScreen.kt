@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,10 +25,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -38,7 +41,9 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,52 +53,122 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.samuel.ielts.data.AnswerNormalizer
+import com.samuel.ielts.model.IeltsBook
 import com.samuel.ielts.model.IeltsScoring
 import com.samuel.ielts.model.PassageParagraph
+import com.samuel.ielts.model.QuestionTypeCategory
+import com.samuel.ielts.model.QuizAttemptSummary
 import com.samuel.ielts.model.QuizQuestion
+import com.samuel.ielts.model.QuizSectionBundle
+import com.samuel.ielts.model.QuizSkillMode
 import com.samuel.ielts.model.ReadingPassage
 import com.samuel.ielts.model.TfngOption
+import com.samuel.ielts.model.YnngOption
 import kotlinx.coroutines.launch
 
 @Composable
 fun QuizScreen(
+    testId: String,
+    book: IeltsBook,
+    testNumber: Int,
     testLabel: String,
-    passage: ReadingPassage,
-    questions: List<QuizQuestion>,
-    onScoreSubmitted: (Double) -> Unit,
+    activeSkill: QuizSkillMode,
+    onSelectSkill: (QuizSkillMode) -> Unit,
+    listeningSections: List<QuizSectionBundle>,
+    readingSections: List<QuizSectionBundle>,
+    onQuizSubmitted: (QuizAttemptSummary) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var passageExpanded by rememberSaveable { mutableStateOf(true) }
-    var selectedParagraph by rememberSaveable(passage.testId) {
-        mutableStateOf(passage.paragraphs.firstOrNull()?.label ?: "A")
+    val sections = if (activeSkill == QuizSkillMode.LISTENING) {
+        listeningSections
+    } else {
+        readingSections
     }
-    var checked by rememberSaveable(passage.testId) { mutableStateOf(false) }
 
-    val mcqAnswers = remember(passage.testId) { mutableStateMapOf<String, Int>() }
-    val tfngAnswers = remember(passage.testId) { mutableStateMapOf<String, TfngOption>() }
-    val fillAnswers = remember(passage.testId) { mutableStateMapOf<String, String>() }
+    var selectedSectionIndex by rememberSaveable(testId, activeSkill.name) { mutableIntStateOf(0) }
+    val safeSectionIndex = selectedSectionIndex.coerceIn(0, (sections.size - 1).coerceAtLeast(0))
+    val currentSection = sections.getOrNull(safeSectionIndex)
 
-    val correctCount = questions.count { question ->
+    var passageExpanded by rememberSaveable(testId, activeSkill.name) { mutableStateOf(true) }
+    var selectedParagraph by rememberSaveable(currentSection?.id ?: testId) {
+        mutableStateOf(currentSection?.passage?.paragraphs?.firstOrNull()?.label ?: "A")
+    }
+    var checked by rememberSaveable(testId, activeSkill.name) { mutableStateOf(false) }
+
+    LaunchedEffect(currentSection?.id) {
+        selectedParagraph = currentSection?.passage?.paragraphs?.firstOrNull()?.label ?: "A"
+    }
+
+    val mcqAnswers = remember(testId, activeSkill) { mutableStateMapOf<String, Set<Int>>() }
+    val tfngAnswers = remember(testId, activeSkill) { mutableStateMapOf<String, TfngOption>() }
+    val ynngAnswers = remember(testId, activeSkill) { mutableStateMapOf<String, YnngOption>() }
+    val fillAnswers = remember(testId, activeSkill) { mutableStateMapOf<String, String>() }
+
+    val allSkillQuestions = remember(sections) { sections.flatMap { it.questions } }
+    val sectionQuestions = currentSection?.questions.orEmpty()
+
+    val totalCorrectCount = allSkillQuestions.count { question ->
         isQuestionCorrect(
             question = question,
             mcqAnswers = mcqAnswers,
             tfngAnswers = tfngAnswers,
+            ynngAnswers = ynngAnswers,
+            fillAnswers = fillAnswers
+        )
+    }
+
+    val sectionCorrectCount = sectionQuestions.count { question ->
+        isQuestionCorrect(
+            question = question,
+            mcqAnswers = mcqAnswers,
+            tfngAnswers = tfngAnswers,
+            ynngAnswers = ynngAnswers,
             fillAnswers = fillAnswers
         )
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        PassagePane(
+        QuizHeaderControls(
             testLabel = testLabel,
-            passage = passage,
-            expanded = passageExpanded,
-            selectedParagraph = selectedParagraph,
-            onToggleExpanded = { passageExpanded = !passageExpanded },
-            onSelectParagraph = { selectedParagraph = it }
+            activeSkill = activeSkill,
+            hasListening = listeningSections.isNotEmpty(),
+            hasReading = readingSections.isNotEmpty(),
+            onSelectSkill = onSelectSkill,
+            sections = sections,
+            selectedSectionIndex = safeSectionIndex,
+            onSelectSection = { selectedSectionIndex = it }
         )
 
         HorizontalDivider(color = NeutralBorder)
+
+        if (currentSection == null) {
+            LockedQuizPlaceholder(
+                testLabel = testLabel,
+                skill = activeSkill
+            )
+            return@Column
+        }
+
+        if (activeSkill == QuizSkillMode.READING && currentSection.passage != null) {
+            PassagePane(
+                testLabel = "$testLabel ${currentSection.shortLabel}",
+                passage = currentSection.passage,
+                expanded = passageExpanded,
+                selectedParagraph = selectedParagraph,
+                onToggleExpanded = { passageExpanded = !passageExpanded },
+                onSelectParagraph = { selectedParagraph = it }
+            )
+            HorizontalDivider(color = NeutralBorder)
+        } else if (activeSkill == QuizSkillMode.LISTENING) {
+            ListeningSectionBanner(
+                testLabel = testLabel,
+                section = currentSection
+            )
+            HorizontalDivider(color = NeutralBorder)
+        }
 
         LazyColumn(
             modifier = Modifier
@@ -104,24 +179,49 @@ fun QuizScreen(
         ) {
             if (checked) {
                 item {
-                    val estimatedBand = IeltsScoring.roundToHalfBand(
-                        4.0 + (correctCount.toDouble() / questions.size.coerceAtLeast(1)) * 5.0
+                    val estimatedBand = IeltsScoring.bandFromRawScore(
+                        correct = totalCorrectCount,
+                        total = allSkillQuestions.size
+                    )
+                    val breakdown = computeTypeBreakdown(
+                        questions = allSkillQuestions,
+                        mcqAnswers = mcqAnswers,
+                        tfngAnswers = tfngAnswers,
+                        ynngAnswers = ynngAnswers,
+                        fillAnswers = fillAnswers
                     )
                     ResultBanner(
-                        correctCount = correctCount,
-                        totalCount = questions.size,
-                        estimatedBand = estimatedBand
+                        skill = activeSkill,
+                        sectionLabel = currentSection.shortLabel,
+                        sectionCorrect = sectionCorrectCount,
+                        sectionTotal = sectionQuestions.size,
+                        totalCorrect = totalCorrectCount,
+                        totalCount = allSkillQuestions.size,
+                        estimatedBand = estimatedBand,
+                        typeBreakdown = breakdown
                     )
                 }
             }
 
-            items(items = questions, key = { it.id }) { question ->
+            items(items = sectionQuestions, key = { it.id }) { question ->
                 when (question) {
                     is QuizQuestion.Mcq -> McqQuestionCard(
                         question = question,
-                        selectedIndex = mcqAnswers[question.id],
+                        selectedIndices = mcqAnswers[question.id].orEmpty(),
                         checked = checked,
-                        onSelect = { mcqAnswers[question.id] = it }
+                        onToggleOption = { index ->
+                            if (question.requiredSelections <= 1) {
+                                mcqAnswers[question.id] = setOf(index)
+                            } else {
+                                val current = mcqAnswers[question.id].orEmpty().toMutableSet()
+                                if (index in current) {
+                                    current.remove(index)
+                                } else {
+                                    current.add(index)
+                                }
+                                mcqAnswers[question.id] = current
+                            }
+                        }
                     )
 
                     is QuizQuestion.TrueFalseNotGiven -> TfngQuestionCard(
@@ -129,6 +229,13 @@ fun QuizScreen(
                         selectedOption = tfngAnswers[question.id],
                         checked = checked,
                         onSelect = { tfngAnswers[question.id] = it }
+                    )
+
+                    is QuizQuestion.YesNoNotGiven -> YnngQuestionCard(
+                        question = question,
+                        selectedOption = ynngAnswers[question.id],
+                        checked = checked,
+                        onSelect = { ynngAnswers[question.id] = it }
                     )
 
                     is QuizQuestion.FillBlank -> FillBlankQuestionCard(
@@ -150,10 +257,29 @@ fun QuizScreen(
                     Button(
                         onClick = {
                             checked = true
-                            val band = IeltsScoring.roundToHalfBand(
-                                4.0 + (correctCount.toDouble() / questions.size.coerceAtLeast(1)) * 5.0
+                            val breakdown = computeTypeBreakdown(
+                                questions = allSkillQuestions,
+                                mcqAnswers = mcqAnswers,
+                                tfngAnswers = tfngAnswers,
+                                ynngAnswers = ynngAnswers,
+                                fillAnswers = fillAnswers
                             )
-                            onScoreSubmitted(band)
+                            val band = IeltsScoring.bandFromRawScore(
+                                correct = totalCorrectCount,
+                                total = allSkillQuestions.size
+                            )
+                            onQuizSubmitted(
+                                QuizAttemptSummary(
+                                    testId = testId,
+                                    book = book,
+                                    testNumber = testNumber,
+                                    skill = activeSkill,
+                                    correctCount = totalCorrectCount,
+                                    totalCount = allSkillQuestions.size,
+                                    band = band,
+                                    typeBreakdown = breakdown
+                                )
+                            )
                         },
                         modifier = Modifier.weight(1f)
                     ) {
@@ -164,12 +290,167 @@ fun QuizScreen(
                             checked = false
                             mcqAnswers.clear()
                             tfngAnswers.clear()
+                            ynngAnswers.clear()
                             fillAnswers.clear()
                         }
                     ) {
                         Text("Reset")
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuizHeaderControls(
+    testLabel: String,
+    activeSkill: QuizSkillMode,
+    hasListening: Boolean,
+    hasReading: Boolean,
+    onSelectSkill: (QuizSkillMode) -> Unit,
+    sections: List<QuizSectionBundle>,
+    selectedSectionIndex: Int,
+    onSelectSection: (Int) -> Unit
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "$testLabel Quiz",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilterChip(
+                        selected = activeSkill == QuizSkillMode.LISTENING,
+                        onClick = { onSelectSkill(QuizSkillMode.LISTENING) },
+                        label = {
+                            Text(if (hasListening) "Listening S1-S4" else "Listening (Locked)")
+                        }
+                    )
+                    FilterChip(
+                        selected = activeSkill == QuizSkillMode.READING,
+                        onClick = { onSelectSkill(QuizSkillMode.READING) },
+                        label = {
+                            Text(if (hasReading) "Reading P1-P3" else "Reading (Locked)")
+                        }
+                    )
+                }
+            }
+
+            if (sections.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    sections.forEachIndexed { index, section ->
+                        val qFirst = section.questions.firstOrNull()?.number
+                        val qLast = section.questions.lastOrNull()?.number
+                        val rangeSuffix = if (qFirst != null && qLast != null) {
+                            " (Q$qFirst-$qLast)"
+                        } else {
+                            ""
+                        }
+                        FilterChip(
+                            selected = selectedSectionIndex == index,
+                            onClick = { onSelectSection(index) },
+                            label = { Text("${section.shortLabel}$rangeSuffix") }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LockedQuizPlaceholder(
+    testLabel: String,
+    skill: QuizSkillMode
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Surface(
+            color = LockedSlateBg,
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, NeutralBorder),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = "Locked",
+                    tint = LockedSlate,
+                    modifier = Modifier.size(32.dp)
+                )
+                Text(
+                    text = "$testLabel ${skill.label} is locked",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "The seed file for this book section is missing. Pick an unlocked test from Library or switch to an available skill.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ListeningSectionBanner(
+    testLabel: String,
+    section: QuizSectionBundle
+) {
+    Surface(
+        color = BrandTealSoft.copy(alpha = 0.55f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = "$testLabel: ${section.title}",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = BrandTeal
+            )
+            if (section.instructions.isNotBlank()) {
+                Text(
+                    text = section.instructions,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
         }
     }
@@ -199,7 +480,7 @@ private fun PassagePane(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
@@ -212,7 +493,7 @@ private fun PassagePane(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "$testLabel: ${passage.title}",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
@@ -327,9 +608,14 @@ private fun ParagraphItem(
 
 @Composable
 private fun ResultBanner(
-    correctCount: Int,
+    skill: QuizSkillMode,
+    sectionLabel: String,
+    sectionCorrect: Int,
+    sectionTotal: Int,
+    totalCorrect: Int,
     totalCount: Int,
-    estimatedBand: Double
+    estimatedBand: Double,
+    typeBreakdown: Map<QuestionTypeCategory, Pair<Int, Int>>
 ) {
     Surface(
         color = SuccessGreenBg,
@@ -337,10 +623,9 @@ private fun ResultBanner(
         border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.4f)),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -353,16 +638,41 @@ private fun ResultBanner(
                 )
                 Column {
                     Text(
-                        text = "Score: $correctCount / $totalCount correct",
+                        text = "${skill.label} Score: $totalCorrect / $totalCount ($sectionLabel: $sectionCorrect / $sectionTotal)",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = SuccessGreen
                     )
                     Text(
-                        text = "Estimated Reading Band: ${IeltsScoring.formatBand(estimatedBand)}",
+                        text = "Estimated ${skill.label} Band: ${IeltsScoring.formatBand(estimatedBand)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = SuccessGreen
                     )
+                }
+            }
+
+            if (typeBreakdown.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    typeBreakdown.forEach { (category, pair) ->
+                        Surface(
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.35f))
+                        ) {
+                            Text(
+                                text = "${category.tag}: ${pair.first}/${pair.second}",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = SuccessGreen
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -397,11 +707,13 @@ private fun QuestionHeader(
 @Composable
 private fun McqQuestionCard(
     question: QuizQuestion.Mcq,
-    selectedIndex: Int?,
+    selectedIndices: Set<Int>,
     checked: Boolean,
-    onSelect: (Int) -> Unit
+    onToggleOption: (Int) -> Unit
 ) {
-    val isCorrect = selectedIndex == question.correctIndex
+    val isMulti = question.requiredSelections > 1
+    val isCorrect = selectedIndices == question.correctIndices
+    val overSelected = isMulti && selectedIndices.size > question.requiredSelections
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -415,44 +727,71 @@ private fun McqQuestionCard(
         ) {
             QuestionHeader(
                 number = question.number,
-                typeLabel = "Multiple Choice",
+                typeLabel = if (isMulti) "MCQ - Pick ${question.requiredSelections}" else "MCQ",
                 paragraphHint = question.paragraphHint
             )
+
+            if (question.instructions.isNotBlank()) {
+                Text(
+                    text = question.instructions,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             Text(
                 text = question.prompt,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium
             )
 
+            if (isMulti) {
+                Text(
+                    text = "Selected ${selectedIndices.size} of ${question.requiredSelections} required option(s).",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (overSelected) WarningAmber else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             question.options.forEachIndexed { index, option ->
-                val letter = ('A' + index).toString()
+                val label = question.labelForIndex(index)
+                val isSelected = index in selectedIndices
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onSelect(index) }
-                        .padding(vertical = 4.dp),
+                        .clickable { onToggleOption(index) }
+                        .padding(vertical = 3.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(
-                        selected = selectedIndex == index,
-                        onClick = { onSelect(index) }
-                    )
+                    if (isMulti) {
+                        Checkbox(
+                            checked = isSelected,
+                            onCheckedChange = { onToggleOption(index) }
+                        )
+                    } else {
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = { onToggleOption(index) }
+                        )
+                    }
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "$letter. $option",
+                        text = "$label. $option",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
 
             if (checked) {
-                val correctLetter = ('A' + question.correctIndex).toString()
+                val correctLabels = question.correctIndices
+                    .sorted()
+                    .joinToString(", ") { question.labelForIndex(it) }
                 AnswerFeedbackChip(
                     isCorrect = isCorrect,
                     message = if (isCorrect) {
-                        "Correct ($correctLetter)"
+                        "Correct ($correctLabels)"
                     } else {
-                        "Correct answer: $correctLetter"
+                        "Correct answer: $correctLabels"
                     }
                 )
             }
@@ -481,7 +820,7 @@ private fun TfngQuestionCard(
         ) {
             QuestionHeader(
                 number = question.number,
-                typeLabel = "TRUE / FALSE / NOT GIVEN",
+                typeLabel = "T/F/NG",
                 paragraphHint = question.paragraphHint
             )
             Text(
@@ -512,6 +851,80 @@ private fun TfngQuestionCard(
                             modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center,
+                            color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+
+            if (checked) {
+                AnswerFeedbackChip(
+                    isCorrect = isCorrect,
+                    message = if (isCorrect) {
+                        "Correct (${question.correctAnswer.label})"
+                    } else {
+                        "Correct answer: ${question.correctAnswer.label}"
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun YnngQuestionCard(
+    question: QuizQuestion.YesNoNotGiven,
+    selectedOption: YnngOption?,
+    checked: Boolean,
+    onSelect: (YnngOption) -> Unit
+) {
+    val isCorrect = selectedOption == question.correctAnswer
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, NeutralBorder)
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            QuestionHeader(
+                number = question.number,
+                typeLabel = "Y/N/NG",
+                paragraphHint = question.paragraphHint
+            )
+            Text(
+                text = question.prompt,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                YnngOption.entries.forEach { option ->
+                    val selected = selectedOption == option
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onSelect(option) },
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (selected) BrandTeal else MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(
+                            1.dp,
+                            if (selected) BrandTeal else NeutralBorder
+                        )
+                    ) {
+                        Text(
+                            text = option.label,
+                            modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center,
                             color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -541,9 +954,7 @@ private fun FillBlankQuestionCard(
 ) {
     val wordCount = IeltsScoring.countWords(answerText)
     val overWordLimit = wordCount > question.maxWords
-    val isCorrect = question.acceptedAnswers.any {
-        it.equals(answerText.trim(), ignoreCase = true)
-    }
+    val isCorrect = isFillBlankCorrect(question, answerText)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -557,7 +968,7 @@ private fun FillBlankQuestionCard(
         ) {
             QuestionHeader(
                 number = question.number,
-                typeLabel = "Fill in the Blank",
+                typeLabel = "Fill-Blank",
                 paragraphHint = question.paragraphHint
             )
 
@@ -567,7 +978,7 @@ private fun FillBlankQuestionCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Word limit: ${question.wordLimitHint}",
+                    text = "Word hint: ${question.wordLimitHint}",
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
@@ -588,10 +999,10 @@ private fun FillBlankQuestionCard(
                 singleLine = true,
                 label = { Text("Type your answer") },
                 supportingText = {
-                    val limitLabel = if (question.maxWords == 1) "1 word max" else "${question.maxWords} words max"
+                    val limitLabel = if (question.maxWords == 1) "1 word hint" else "${question.maxWords} words hint"
                     Text(
                         text = if (overWordLimit) {
-                            "Too many words ($wordCount typed, $limitLabel)"
+                            "Word warning: $wordCount words typed ($limitLabel). Submission still allowed."
                         } else {
                             "$wordCount word(s) typed ($limitLabel)"
                         },
@@ -612,7 +1023,7 @@ private fun FillBlankQuestionCard(
                         modifier = Modifier.height(16.dp)
                     )
                     Text(
-                        text = "Your answer goes over the word limit.",
+                        text = "Warning: your answer exceeds the word hint. You can still submit.",
                         style = MaterialTheme.typography.labelSmall,
                         color = WarningAmber
                     )
@@ -623,9 +1034,9 @@ private fun FillBlankQuestionCard(
                 AnswerFeedbackChip(
                     isCorrect = isCorrect,
                     message = if (isCorrect) {
-                        "Correct (${question.acceptedAnswers.first()})"
+                        "Correct (${question.acceptedAnswers.firstOrNull().orEmpty()})"
                     } else {
-                        "Correct answer: ${question.acceptedAnswers.first()}"
+                        "Correct answer: ${question.rawAnswerKey.ifBlank { question.acceptedAnswers.firstOrNull().orEmpty() }}"
                     }
                 )
             }
@@ -653,18 +1064,51 @@ private fun AnswerFeedbackChip(
     }
 }
 
+private fun isFillBlankCorrect(
+    question: QuizQuestion.FillBlank,
+    answerText: String
+): Boolean {
+    val trimmed = answerText.trim()
+    if (trimmed.isEmpty()) return false
+    if (question.rawAnswerKey.isNotBlank() && AnswerNormalizer.matches(question.rawAnswerKey, trimmed)) {
+        return true
+    }
+    return question.acceptedAnswers.any { accepted ->
+        AnswerNormalizer.matches(accepted, trimmed) || accepted.equals(trimmed, ignoreCase = true)
+    }
+}
+
 private fun isQuestionCorrect(
     question: QuizQuestion,
-    mcqAnswers: Map<String, Int>,
+    mcqAnswers: Map<String, Set<Int>>,
     tfngAnswers: Map<String, TfngOption>,
+    ynngAnswers: Map<String, YnngOption>,
     fillAnswers: Map<String, String>
 ): Boolean {
     return when (question) {
-        is QuizQuestion.Mcq -> mcqAnswers[question.id] == question.correctIndex
+        is QuizQuestion.Mcq -> mcqAnswers[question.id].orEmpty() == question.correctIndices
         is QuizQuestion.TrueFalseNotGiven -> tfngAnswers[question.id] == question.correctAnswer
-        is QuizQuestion.FillBlank -> {
-            val typed = fillAnswers[question.id].orEmpty().trim()
-            question.acceptedAnswers.any { it.equals(typed, ignoreCase = true) }
+        is QuizQuestion.YesNoNotGiven -> ynngAnswers[question.id] == question.correctAnswer
+        is QuizQuestion.FillBlank -> isFillBlankCorrect(question, fillAnswers[question.id].orEmpty())
+    }
+}
+
+private fun computeTypeBreakdown(
+    questions: List<QuizQuestion>,
+    mcqAnswers: Map<String, Set<Int>>,
+    tfngAnswers: Map<String, TfngOption>,
+    ynngAnswers: Map<String, YnngOption>,
+    fillAnswers: Map<String, String>
+): Map<QuestionTypeCategory, Pair<Int, Int>> {
+    val result = linkedMapOf<QuestionTypeCategory, Pair<Int, Int>>()
+    QuestionTypeCategory.entries.forEach { category ->
+        val matching = questions.filter { it.category == category }
+        if (matching.isNotEmpty()) {
+            val correct = matching.count { q ->
+                isQuestionCorrect(q, mcqAnswers, tfngAnswers, ynngAnswers, fillAnswers)
+            }
+            result[category] = correct to matching.size
         }
     }
+    return result
 }
