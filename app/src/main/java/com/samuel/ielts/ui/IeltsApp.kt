@@ -1,21 +1,34 @@
 package com.samuel.ielts.ui
 
 import android.content.Context
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,13 +36,27 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.samuel.ielts.data.Attempt
 import com.samuel.ielts.data.IeltsDb
 import com.samuel.ielts.model.CriterionScore
 import com.samuel.ielts.model.IeltsScoring
+import com.samuel.ielts.model.NextStepCardData
+import com.samuel.ielts.model.NextStepDestination
+import com.samuel.ielts.model.NextStepRecommender
 import com.samuel.ielts.model.PracticeTest
 import com.samuel.ielts.model.QuestionTypeAccuracy
 import com.samuel.ielts.model.QuestionTypeCategory
@@ -37,10 +64,16 @@ import com.samuel.ielts.model.QuizAttemptSummary
 import com.samuel.ielts.model.QuizSkillMode
 import com.samuel.ielts.model.SectionStatus
 import com.samuel.ielts.model.SkillProgress
+import com.samuel.ielts.model.SpeakingPromptData
+import com.samuel.ielts.model.StudyProgressSnapshot
+import com.samuel.ielts.model.StudyStreakStore
 import com.samuel.ielts.model.TestProgressRecord
 import com.samuel.ielts.model.WritingCriterion
 import com.samuel.ielts.model.WritingTaskData
 import com.samuel.ielts.model.WritingTaskType
+import com.samuel.ielts.ui.components.ConfettiBurst
+import com.samuel.ielts.ui.components.IeltsIcons
+import com.samuel.ielts.ui.components.NewBestBandBanner
 import com.samuel.ielts.ui.screens.DEFAULT_API_BASE_URL
 import com.samuel.ielts.ui.screens.DEFAULT_API_MODEL
 import com.samuel.ielts.ui.screens.LibraryScreen
@@ -54,6 +87,7 @@ import com.samuel.ielts.ui.screens.SpeakingPracticeScreen
 import com.samuel.ielts.ui.screens.WritingScreen
 import com.samuel.ielts.ui.screens.parseWritingMarkJson
 import com.samuel.ielts.ui.screens.toFriendlyNetworkError
+import com.samuel.ielts.ui.theme.IeltsSpacing
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -72,9 +106,9 @@ object IeltsRoutes {
     const val LIBRARY = "library"
     const val QUIZ = "quiz"
     const val WRITING = "writing"
+    const val SPEAKING = "speaking"
     const val PROGRESS = "progress"
     const val SETTINGS = "settings"
-    const val SPEAKING = "speaking"
 }
 
 private data class NavDestination(
@@ -84,10 +118,11 @@ private data class NavDestination(
 )
 
 private val TopLevelDestinations = listOf(
-    NavDestination(IeltsRoutes.LIBRARY, "Library", Icons.Default.Home),
-    NavDestination(IeltsRoutes.QUIZ, "Quiz", Icons.Default.PlayArrow),
+    NavDestination(IeltsRoutes.LIBRARY, "Library", IeltsIcons.MenuBook),
+    NavDestination(IeltsRoutes.QUIZ, "Quiz", IeltsIcons.QuizCheck),
     NavDestination(IeltsRoutes.WRITING, "Writing", Icons.Default.Edit),
-    NavDestination(IeltsRoutes.PROGRESS, "Progress", Icons.Default.Star),
+    NavDestination(IeltsRoutes.SPEAKING, "Speaking", IeltsIcons.Mic),
+    NavDestination(IeltsRoutes.PROGRESS, "Progress", IeltsIcons.TrendingUp),
     NavDestination(IeltsRoutes.SETTINGS, "Settings", Icons.Default.Settings)
 )
 
@@ -108,7 +143,9 @@ fun IeltsApp(
 
     var catalog by remember { mutableStateOf(SeedCatalogLoader.createEmptySkeleton()) }
     var practiceTests by remember { mutableStateOf(catalog.tests) }
-    var currentRoute by rememberSaveable { mutableStateOf(IeltsRoutes.LIBRARY) }
+    var navBackStack by rememberSaveable { mutableStateOf(listOf(IeltsRoutes.LIBRARY)) }
+    val currentRoute = navBackStack.lastOrNull() ?: IeltsRoutes.LIBRARY
+
     var selectedTestId by rememberSaveable { mutableStateOf(practiceTests.first().id) }
     var selectedQuizSkill by rememberSaveable { mutableStateOf(QuizSkillMode.READING) }
 
@@ -116,12 +153,60 @@ fun IeltsApp(
     var recentRecords by remember { mutableStateOf<List<TestProgressRecord>>(emptyList()) }
     var writingMarkHistory by remember { mutableStateOf<List<MarkResult>>(emptyList()) }
 
+    val streakSnapshot by remember(context) {
+        StudyStreakStore.observeSnapshot(context)
+    }.collectAsState(initial = StudyProgressSnapshot())
+
+    var showConfetti by remember { mutableStateOf(false) }
+    var celebratedBestBand by remember { mutableStateOf<Double?>(null) }
+
     var baseUrl by rememberSaveable { mutableStateOf(DEFAULT_API_BASE_URL) }
     // Pre-filled from gitignored meta.env at build time; user can still
     // replace or clear it in Settings. Never logged.
     var apiKey by rememberSaveable { mutableStateOf(com.samuel.ielts.BuildConfig.META_API_KEY_DEFAULT) }
     var model by rememberSaveable { mutableStateOf(DEFAULT_API_MODEL) }
     var settingsTestState by remember { mutableStateOf<SettingsTestState>(SettingsTestState.Idle) }
+
+    fun navigateTo(route: String) {
+        if (route == currentRoute) return
+        navBackStack = if (route == IeltsRoutes.LIBRARY) {
+            listOf(IeltsRoutes.LIBRARY)
+        } else {
+            val withoutTarget = navBackStack.filterNot { it == route }
+            val withRoot = if (withoutTarget.firstOrNull() == IeltsRoutes.LIBRARY) {
+                withoutTarget
+            } else {
+                listOf(IeltsRoutes.LIBRARY) + withoutTarget
+            }
+            withRoot + route
+        }
+    }
+
+    fun navigateBack() {
+        navBackStack = if (navBackStack.size > 1) {
+            navBackStack.dropLast(1)
+        } else {
+            listOf(IeltsRoutes.LIBRARY)
+        }
+    }
+
+    BackHandler(enabled = currentRoute != IeltsRoutes.LIBRARY) {
+        navigateBack()
+    }
+
+    fun recordStudyAndCheckBest(updatedTests: List<PracticeTest>) {
+        val overallBand = computeOverallBand(updatedTests)
+        scope.launch {
+            val outcome = StudyStreakStore.recordStudyActivity(
+                context = context,
+                candidateOverallBand = overallBand
+            )
+            if (outcome.isNewBestBand) {
+                celebratedBestBand = outcome.snapshot.bestOverallBand
+                showConfetti = true
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         val loaded = withContext(Dispatchers.IO) {
@@ -137,15 +222,25 @@ fun IeltsApp(
     val selectedTest = practiceTests.firstOrNull { it.id == selectedTestId } ?: practiceTests.first()
     val selectedBundle = catalog.bundlesById[selectedTest.id]
     val selectedTestLabel = "${selectedTest.book.code} Test ${selectedTest.testNumber}"
-    val selectedQuestionId = remember(selectedTest.id, practiceTests.size) {
-        (practiceTests.indexOfFirst { it.id == selectedTest.id }.coerceAtLeast(0) + 1).toLong()
+
+    val activeWritingTest = remember(selectedTest, practiceTests, catalog) {
+        if (catalog.bundlesById[selectedTest.id]?.writingTask1 != null) {
+            selectedTest
+        } else {
+            practiceTests.firstOrNull { catalog.bundlesById[it.id]?.writingTask1 != null } ?: selectedTest
+        }
+    }
+    val activeWritingBundle = catalog.bundlesById[activeWritingTest.id]
+    val activeWritingTestLabel = "${activeWritingTest.book.code} Test ${activeWritingTest.testNumber}"
+    val activeWritingQuestionId = remember(activeWritingTest.id, practiceTests.size) {
+        (practiceTests.indexOfFirst { it.id == activeWritingTest.id }.coerceAtLeast(0) + 1).toLong()
     }
 
-    val task1Data = remember(selectedTest.id, selectedBundle) {
-        selectedBundle?.writingTask1 ?: buildFallbackTask1Data(selectedTest)
+    val task1Data = remember(activeWritingTest.id, activeWritingBundle) {
+        activeWritingBundle?.writingTask1 ?: buildFallbackTask1Data(activeWritingTest)
     }
-    val task2Data = remember(selectedTest.id, selectedBundle) {
-        selectedBundle?.writingTask2 ?: buildFallbackTask2Data(selectedTest)
+    val task2Data = remember(activeWritingTest.id, activeWritingBundle) {
+        activeWritingBundle?.writingTask2 ?: buildFallbackTask2Data(activeWritingTest)
     }
 
     var task1ChartBase64 by remember(task1Data.chartAssetPath) { mutableStateOf<String?>(null) }
@@ -155,153 +250,204 @@ fun IeltsApp(
         }
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        bottomBar = {
-            NavigationBar {
-                TopLevelDestinations.forEach { destination ->
-                    val navSelected = currentRoute == destination.route ||
-                        (currentRoute == IeltsRoutes.SPEAKING && destination.route == IeltsRoutes.LIBRARY)
-                    NavigationBarItem(
-                        selected = navSelected,
-                        onClick = { currentRoute = destination.route },
-                        icon = {
-                            Icon(
-                                imageVector = destination.icon,
-                                contentDescription = destination.label
-                            )
-                        },
-                        label = { Text(destination.label) }
-                    )
-                }
+    val availableSpeakingTests = remember(practiceTests, catalog) {
+        practiceTests.filter { catalog.bundlesById[it.id]?.speaking != null }
+    }
+    val activeSpeakingTest = remember(selectedTest, availableSpeakingTests, catalog) {
+        if (catalog.bundlesById[selectedTest.id]?.speaking != null) {
+            selectedTest
+        } else {
+            availableSpeakingTests.firstOrNull() ?: selectedTest
+        }
+    }
+    val activeSpeakingData = catalog.bundlesById[activeSpeakingTest.id]?.speaking
+        ?: buildFallbackSpeakingData(activeSpeakingTest)
+    val activeSpeakingTestLabel = "${activeSpeakingTest.book.code} Test ${activeSpeakingTest.testNumber}"
+
+    val bookSummaries = remember(practiceTests) {
+        IeltsScoring.aggregateBooks(practiceTests)
+    }
+    val skillProgress = remember(practiceTests) {
+        buildSkillProgress(practiceTests)
+    }
+    val typeStats = remember(quizAttempts) {
+        buildQuestionTypeStats(quizAttempts)
+    }
+    val writingCriteria = remember(writingMarkHistory) {
+        buildWritingCriteriaProgress(writingMarkHistory)
+    }
+    val nextSteps = remember(practiceTests, quizAttempts, typeStats, writingCriteria, recentRecords) {
+        NextStepRecommender.buildNextSteps(
+            tests = practiceTests,
+            quizAttempts = quizAttempts,
+            questionTypeStats = typeStats,
+            writingCriteria = writingCriteria,
+            recentRecords = recentRecords
+        )
+    }
+
+    fun handleNextStep(step: NextStepCardData) {
+        step.targetTestId?.let { targetId ->
+            if (practiceTests.any { it.id == targetId }) {
+                selectedTestId = targetId
             }
         }
-    ) { innerPadding ->
-        val contentModifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding)
+        when (step.destination) {
+            NextStepDestination.LIBRARY -> navigateTo(IeltsRoutes.LIBRARY)
+            NextStepDestination.QUIZ_LISTENING -> {
+                selectedQuizSkill = QuizSkillMode.LISTENING
+                navigateTo(IeltsRoutes.QUIZ)
+            }
+            NextStepDestination.QUIZ_READING -> {
+                selectedQuizSkill = QuizSkillMode.READING
+                navigateTo(IeltsRoutes.QUIZ)
+            }
+            NextStepDestination.WRITING -> navigateTo(IeltsRoutes.WRITING)
+            NextStepDestination.SPEAKING -> navigateTo(IeltsRoutes.SPEAKING)
+        }
+    }
 
-        stateHolder.SaveableStateProvider(key = currentRoute) {
-            when (currentRoute) {
-                IeltsRoutes.LIBRARY -> {
-                    LibraryScreen(
-                        tests = practiceTests,
-                        onOpenListening = { test ->
-                            selectedTestId = test.id
-                            selectedQuizSkill = QuizSkillMode.LISTENING
-                            currentRoute = IeltsRoutes.QUIZ
-                        },
-                        onOpenReading = { test ->
-                            selectedTestId = test.id
-                            selectedQuizSkill = QuizSkillMode.READING
-                            currentRoute = IeltsRoutes.QUIZ
-                        },
-                        onOpenWriting = { test ->
-                            selectedTestId = test.id
-                            currentRoute = IeltsRoutes.WRITING
-                        },
-                        onOpenSpeaking = { test ->
-                            selectedTestId = test.id
-                            currentRoute = IeltsRoutes.SPEAKING
-                        },
-                        modifier = contentModifier
-                    )
-                }
+    Box(modifier = modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            bottomBar = {
+                IeltsBottomNavigationBar(
+                    destinations = TopLevelDestinations,
+                    currentRoute = currentRoute,
+                    onSelectRoute = { route -> navigateTo(route) }
+                )
+            }
+        ) { innerPadding ->
+            val contentModifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
 
-                IeltsRoutes.QUIZ -> {
-                    QuizScreen(
-                        testId = selectedTest.id,
-                        book = selectedTest.book,
-                        testNumber = selectedTest.testNumber,
-                        testLabel = selectedTestLabel,
-                        activeSkill = selectedQuizSkill,
-                        onSelectSkill = { selectedQuizSkill = it },
-                        listeningSections = selectedBundle?.listeningSections.orEmpty(),
-                        readingSections = selectedBundle?.readingSections.orEmpty(),
-                        onQuizSubmitted = { summary ->
-                            quizAttempts = quizAttempts + summary
-                            val recordLabel = "${summary.book.code} T${summary.testNumber} ${if (summary.skill == QuizSkillMode.LISTENING) "L" else "R"}"
-                            recentRecords = (recentRecords + TestProgressRecord(recordLabel, summary.band, summary.book)).takeLast(12)
-                            practiceTests = practiceTests.map { item ->
-                                if (item.id == summary.testId) {
-                                    if (summary.skill == QuizSkillMode.LISTENING) {
+            stateHolder.SaveableStateProvider(key = currentRoute) {
+                when (currentRoute) {
+                    IeltsRoutes.LIBRARY -> {
+                        LibraryScreen(
+                            tests = practiceTests,
+                            onOpenListening = { test ->
+                                selectedTestId = test.id
+                                selectedQuizSkill = QuizSkillMode.LISTENING
+                                navigateTo(IeltsRoutes.QUIZ)
+                            },
+                            onOpenReading = { test ->
+                                selectedTestId = test.id
+                                selectedQuizSkill = QuizSkillMode.READING
+                                navigateTo(IeltsRoutes.QUIZ)
+                            },
+                            onOpenWriting = { test ->
+                                selectedTestId = test.id
+                                navigateTo(IeltsRoutes.WRITING)
+                            },
+                            onOpenSpeaking = { test ->
+                                selectedTestId = test.id
+                                navigateTo(IeltsRoutes.SPEAKING)
+                            },
+                            streakSnapshot = streakSnapshot,
+                            topNextStep = nextSteps.firstOrNull(),
+                            onSelectNextStep = ::handleNextStep,
+                            modifier = contentModifier
+                        )
+                    }
+
+                    IeltsRoutes.QUIZ -> {
+                        QuizScreen(
+                            testId = selectedTest.id,
+                            book = selectedTest.book,
+                            testNumber = selectedTest.testNumber,
+                            testLabel = selectedTestLabel,
+                            activeSkill = selectedQuizSkill,
+                            onSelectSkill = { selectedQuizSkill = it },
+                            listeningSections = selectedBundle?.listeningSections.orEmpty(),
+                            readingSections = selectedBundle?.readingSections.orEmpty(),
+                            onQuizSubmitted = { summary ->
+                                quizAttempts = quizAttempts + summary
+                                val recordLabel = "${summary.book.code} T${summary.testNumber} ${if (summary.skill == QuizSkillMode.LISTENING) "L" else "R"}"
+                                recentRecords = (recentRecords + TestProgressRecord(recordLabel, summary.band, summary.book)).takeLast(12)
+                                val updatedTests = practiceTests.map { item ->
+                                    if (item.id == summary.testId) {
+                                        if (summary.skill == QuizSkillMode.LISTENING) {
+                                            item.copy(
+                                                listeningStatus = SectionStatus.COMPLETED,
+                                                lastListeningBand = summary.band
+                                            )
+                                        } else {
+                                            item.copy(
+                                                readingStatus = SectionStatus.COMPLETED,
+                                                lastReadingBand = summary.band
+                                            )
+                                        }
+                                    } else {
+                                        item
+                                    }
+                                }
+                                practiceTests = updatedTests
+                                recordStudyAndCheckBest(updatedTests)
+                            },
+                            modifier = contentModifier
+                        )
+                    }
+
+                    IeltsRoutes.WRITING -> {
+                        WritingScreen(
+                            testLabel = activeWritingTestLabel,
+                            task1Data = task1Data,
+                            task2Data = task2Data,
+                            onOverallBandUpdated = { band ->
+                                val recordLabel = "${activeWritingTest.book.code} T${activeWritingTest.testNumber} W"
+                                recentRecords = (recentRecords + TestProgressRecord(recordLabel, band, activeWritingTest.book)).takeLast(12)
+                                val updatedTests = practiceTests.map { item ->
+                                    if (item.id == activeWritingTest.id) {
                                         item.copy(
-                                            listeningStatus = SectionStatus.COMPLETED,
-                                            lastListeningBand = summary.band
+                                            writingStatus = SectionStatus.COMPLETED,
+                                            lastWritingBand = band
                                         )
                                     } else {
-                                        item.copy(
-                                            readingStatus = SectionStatus.COMPLETED,
-                                            lastReadingBand = summary.band
-                                        )
+                                        item
                                     }
-                                } else {
-                                    item
                                 }
-                            }
-                        },
-                        modifier = contentModifier
-                    )
-                }
-
-                IeltsRoutes.WRITING -> {
-                    WritingScreen(
-                        testLabel = selectedTestLabel,
-                        task1Data = task1Data,
-                        task2Data = task2Data,
-                        onOverallBandUpdated = { band ->
-                            val recordLabel = "${selectedTest.book.code} T${selectedTest.testNumber} W"
-                            recentRecords = (recentRecords + TestProgressRecord(recordLabel, band, selectedTest.book)).takeLast(12)
-                            practiceTests = practiceTests.map { item ->
-                                if (item.id == selectedTest.id) {
-                                    item.copy(
-                                        writingStatus = SectionStatus.COMPLETED,
-                                        lastWritingBand = band
-                                    )
-                                } else {
-                                    item
+                                practiceTests = updatedTests
+                                recordStudyAndCheckBest(updatedTests)
+                            },
+                            questionId = activeWritingQuestionId,
+                            chartBase64 = task1ChartBase64,
+                            onMarkTask = { taskNumber, essay, chartBase64 ->
+                                val promptText = if (taskNumber == 1) task1Data.prompt else task2Data.prompt
+                                val result = requestWritingMark(
+                                    context = context,
+                                    client = httpClient,
+                                    baseUrl = baseUrl,
+                                    apiKey = apiKey,
+                                    model = model,
+                                    taskNumber = taskNumber,
+                                    taskPrompt = promptText,
+                                    essay = essay,
+                                    chartBase64 = if (taskNumber == 1) chartBase64 else null
+                                )
+                                writingMarkHistory = writingMarkHistory + result
+                                result
+                            },
+                            onSaveAttempt = { attempt ->
+                                scope.launch(Dispatchers.IO) {
+                                    saveAttemptBestEffort(context, attempt)
                                 }
-                            }
-                        },
-                        questionId = selectedQuestionId,
-                        chartBase64 = task1ChartBase64,
-                        onMarkTask = { taskNumber, essay, chartBase64 ->
-                            val promptText = if (taskNumber == 1) task1Data.prompt else task2Data.prompt
-                            val result = requestWritingMark(
-                                context = context,
-                                client = httpClient,
-                                baseUrl = baseUrl,
-                                apiKey = apiKey,
-                                model = model,
-                                taskNumber = taskNumber,
-                                taskPrompt = promptText,
-                                essay = essay,
-                                chartBase64 = if (taskNumber == 1) chartBase64 else null
-                            )
-                            writingMarkHistory = writingMarkHistory + result
-                            result
-                        },
-                        onSaveAttempt = { attempt ->
-                            scope.launch(Dispatchers.IO) {
-                                saveAttemptBestEffort(context, attempt)
-                            }
-                        },
-                        modifier = contentModifier
-                    )
-                }
+                            },
+                            modifier = contentModifier
+                        )
+                    }
 
-                IeltsRoutes.SPEAKING -> {
-                    val speakingData = selectedBundle?.speaking
-                    if (speakingData != null) {
+                    IeltsRoutes.SPEAKING -> {
                         SpeakingPracticeScreen(
-                            testLabel = selectedTestLabel,
-                            speakingData = speakingData,
-                            initialBand = selectedTest.lastSpeakingBand,
+                            testLabel = activeSpeakingTestLabel,
+                            speakingData = activeSpeakingData,
+                            initialBand = activeSpeakingTest.lastSpeakingBand,
                             onSaveBand = { band ->
-                                val recordLabel = "${selectedTest.book.code} T${selectedTest.testNumber} S"
-                                recentRecords = (recentRecords + TestProgressRecord(recordLabel, band, selectedTest.book)).takeLast(12)
-                                practiceTests = practiceTests.map { item ->
-                                    if (item.id == selectedTest.id) {
+                                val recordLabel = "${activeSpeakingTest.book.code} T${activeSpeakingTest.testNumber} S"
+                                recentRecords = (recentRecords + TestProgressRecord(recordLabel, band, activeSpeakingTest.book)).takeLast(12)
+                                val updatedTests = practiceTests.map { item ->
+                                    if (item.id == activeSpeakingTest.id) {
                                         item.copy(
                                             speakingStatus = SectionStatus.COMPLETED,
                                             lastSpeakingBand = band
@@ -310,66 +456,174 @@ fun IeltsApp(
                                         item
                                     }
                                 }
-                                currentRoute = IeltsRoutes.LIBRARY
+                                practiceTests = updatedTests
+                                recordStudyAndCheckBest(updatedTests)
                             },
-                            onBack = { currentRoute = IeltsRoutes.LIBRARY },
+                            onBack = { navigateTo(IeltsRoutes.LIBRARY) },
+                            availableTests = availableSpeakingTests.map { test ->
+                                test.id to "${test.book.code} T${test.testNumber}"
+                            },
+                            selectedTestId = activeSpeakingTest.id,
+                            onSelectTest = { id -> selectedTestId = id },
                             modifier = contentModifier
                         )
-                    } else {
-                        currentRoute = IeltsRoutes.LIBRARY
                     }
-                }
 
-                IeltsRoutes.PROGRESS -> {
-                    val bookSummaries = remember(practiceTests) {
-                        IeltsScoring.aggregateBooks(practiceTests)
+                    IeltsRoutes.PROGRESS -> {
+                        ProgressScreen(
+                            skillProgress = skillProgress,
+                            recentTests = recentRecords,
+                            writingCriteria = writingCriteria,
+                            bookSummaries = bookSummaries,
+                            questionTypeStats = typeStats,
+                            streakSnapshot = streakSnapshot,
+                            nextSteps = nextSteps,
+                            onSelectNextStep = ::handleNextStep,
+                            modifier = contentModifier
+                        )
                     }
-                    val skillProgress = remember(practiceTests) {
-                        buildSkillProgress(practiceTests)
-                    }
-                    val typeStats = remember(quizAttempts) {
-                        buildQuestionTypeStats(quizAttempts)
-                    }
-                    val writingCriteria = remember(writingMarkHistory) {
-                        buildWritingCriteriaProgress(writingMarkHistory)
-                    }
-                    ProgressScreen(
-                        skillProgress = skillProgress,
-                        recentTests = recentRecords,
-                        writingCriteria = writingCriteria,
-                        bookSummaries = bookSummaries,
-                        questionTypeStats = typeStats,
-                        modifier = contentModifier
-                    )
-                }
 
-                IeltsRoutes.SETTINGS -> {
-                    SettingsScreen(
-                        baseUrl = baseUrl,
-                        onBaseUrlChange = { baseUrl = it },
-                        apiKey = apiKey,
-                        onApiKeyChange = { apiKey = it },
-                        model = model,
-                        onModelChange = { model = it },
-                        onTestConnection = {
-                            if (settingsTestState !is SettingsTestState.Loading) {
-                                settingsTestState = SettingsTestState.Loading
-                                scope.launch {
-                                    settingsTestState = testEndpointConnection(
-                                        client = httpClient,
-                                        baseUrl = baseUrl,
-                                        apiKey = apiKey
-                                    )
+                    IeltsRoutes.SETTINGS -> {
+                        SettingsScreen(
+                            baseUrl = baseUrl,
+                            onBaseUrlChange = { baseUrl = it },
+                            apiKey = apiKey,
+                            onApiKeyChange = { apiKey = it },
+                            model = model,
+                            onModelChange = { model = it },
+                            onTestConnection = {
+                                if (settingsTestState !is SettingsTestState.Loading) {
+                                    settingsTestState = SettingsTestState.Loading
+                                    scope.launch {
+                                        settingsTestState = testEndpointConnection(
+                                            client = httpClient,
+                                            baseUrl = baseUrl,
+                                            apiKey = apiKey
+                                        )
+                                    }
                                 }
-                            }
-                        },
-                        testState = settingsTestState,
-                        modifier = contentModifier
+                            },
+                            testState = settingsTestState,
+                            modifier = contentModifier
+                        )
+                    }
+                }
+            }
+        }
+
+        val bannerBand = celebratedBestBand
+        if (bannerBand != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .padding(horizontal = IeltsSpacing.Md, vertical = IeltsSpacing.Md)
+            ) {
+                NewBestBandBanner(
+                    bestBand = bannerBand,
+                    onDismiss = { celebratedBestBand = null }
+                )
+            }
+        }
+
+        ConfettiBurst(
+            show = showConfetti,
+            onFinished = { showConfetti = false },
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
+@Composable
+private fun IeltsBottomNavigationBar(
+    destinations: List<NavDestination>,
+    currentRoute: String,
+    onSelectRoute: (String) -> Unit
+) {
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
+        windowInsets = NavigationBarDefaults.windowInsets
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = IeltsSpacing.Xs, vertical = IeltsSpacing.Xs),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            destinations.forEach { destination ->
+                val isSelected = currentRoute == destination.route
+                val contentColor = if (isSelected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                val indicatorColor = if (isSelected) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    Color.Transparent
+                }
+                val interactionSource = remember(destination.route) { MutableInteractionSource() }
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .defaultMinSize(
+                            minWidth = IeltsSpacing.TouchTarget,
+                            minHeight = 64.dp
+                        )
+                        .clip(MaterialTheme.shapes.medium)
+                        .semantics {
+                            role = Role.Tab
+                            selected = isSelected
+                        }
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication = null,
+                            onClick = { onSelectRoute(destination.route) }
+                        )
+                        .padding(vertical = IeltsSpacing.Xs),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(48.dp)
+                            .height(38.dp)
+                            .clip(RoundedCornerShape(19.dp))
+                            .background(indicatorColor),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = destination.icon,
+                            contentDescription = destination.label,
+                            tint = contentColor,
+                            modifier = Modifier.size(IeltsSpacing.NavIcon)
+                        )
+                    }
+                    Text(
+                        text = destination.label,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            lineHeight = 12.sp,
+                            letterSpacing = (-0.1).sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                        ),
+                        color = contentColor,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
         }
     }
+}
+
+private fun computeOverallBand(tests: List<PracticeTest>): Double {
+    val activeSkills = buildSkillProgress(tests).filter { it.band > 0.0 }
+    if (activeSkills.isEmpty()) return 0.0
+    return IeltsScoring.roundToHalfBand(activeSkills.map { it.band }.average())
 }
 
 private fun buildSkillProgress(tests: List<PracticeTest>): List<SkillProgress> {
@@ -633,4 +887,12 @@ private fun buildFallbackTask2Data(test: PracticeTest): WritingTaskData = Writin
     inlineComments = emptyList(),
     band75Rewrite = "Submit your draft with Review Draft to generate a Band 7.5 rewrite.",
     band8Model = "Submit your draft with Review Draft to generate a Band 8.0 model answer."
+)
+
+private fun buildFallbackSpeakingData(test: PracticeTest): SpeakingPromptData = SpeakingPromptData(
+    testId = test.id,
+    topicSummary = "Daily life and study goals",
+    part1 = "Tell me about your hometown and what you enjoy studying or working on right now.",
+    part2 = "Describe a memorable learning experience you had recently. You should say what you learned, how you practiced, and why it was useful.",
+    part3 = "How has technology changed the way people prepare for exams? What skills matter most for lifelong learning?"
 )

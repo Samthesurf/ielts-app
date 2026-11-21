@@ -8,20 +8,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,9 +41,15 @@ import androidx.compose.ui.unit.dp
 import com.samuel.ielts.model.IeltsBook
 import com.samuel.ielts.model.IeltsScoring
 import com.samuel.ielts.model.IeltsSkill
+import com.samuel.ielts.model.NextStepCardData
 import com.samuel.ielts.model.PracticeTest
 import com.samuel.ielts.model.SectionStatus
 import com.samuel.ielts.model.SkillSectionState
+import com.samuel.ielts.model.StudyProgressSnapshot
+import com.samuel.ielts.ui.components.IeltsIcons
+import com.samuel.ielts.ui.components.NextStepCardsSection
+import com.samuel.ielts.ui.components.StreakFlameTile
+import com.samuel.ielts.ui.theme.IeltsSpacing
 
 private enum class BookFilter(val label: String) {
     ALL("All Books"),
@@ -61,6 +65,9 @@ fun LibraryScreen(
     onOpenReading: (PracticeTest) -> Unit,
     onOpenWriting: (PracticeTest) -> Unit,
     onOpenSpeaking: (PracticeTest) -> Unit,
+    streakSnapshot: StudyProgressSnapshot = StudyProgressSnapshot(),
+    topNextStep: NextStepCardData? = null,
+    onSelectNextStep: (NextStepCardData) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedFilter by rememberSaveable { mutableStateOf(BookFilter.ALL) }
@@ -76,11 +83,11 @@ fun LibraryScreen(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(IeltsSpacing.Md),
+        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
     ) {
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
                 Text(
                     text = "Test Library",
                     style = MaterialTheme.typography.headlineSmall,
@@ -95,8 +102,26 @@ fun LibraryScreen(
         }
 
         item {
+            StreakFlameTile(
+                snapshot = streakSnapshot,
+                compact = true
+            )
+        }
+
+        if (topNextStep != null) {
+            item {
+                NextStepCardsSection(
+                    title = "Recommended Next Step",
+                    subtitle = "Based on your weakest question type and recent attempts.",
+                    steps = listOf(topNextStep),
+                    onSelectStep = onSelectNextStep
+                )
+            }
+        }
+
+        item {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm),
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
@@ -153,17 +178,18 @@ private fun BookSectionHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 8.dp, bottom = 2.dp),
+            .padding(top = IeltsSpacing.Sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                imageVector = if (seededSections == 0) Icons.Default.Lock else Icons.Default.Menu,
-                contentDescription = null,
-                tint = if (seededSections == 0) LockedSlate else MaterialTheme.colorScheme.primary
+                imageVector = if (seededSections == 0) Icons.Default.Lock else IeltsIcons.MenuBook,
+                contentDescription = if (seededSections == 0) "${book.title} locked" else "${book.title} available",
+                tint = if (seededSections == 0) LockedSlate else MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(IeltsSpacing.ActionIcon)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(IeltsSpacing.Sm))
             Text(
                 text = book.title,
                 style = MaterialTheme.typography.titleMedium,
@@ -194,7 +220,7 @@ private fun PracticeTestCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = if (test.hasAnySeededSection) {
                 MaterialTheme.colorScheme.surface
@@ -207,8 +233,8 @@ private fun PracticeTestCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(IeltsSpacing.Md),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -217,15 +243,15 @@ private fun PracticeTestCard(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
                 ) {
                     Surface(
                         color = if (test.hasAnySeededSection) BrandBlueSoft else LockedSlateBg,
-                        shape = RoundedCornerShape(8.dp)
+                        shape = MaterialTheme.shapes.small
                     ) {
                         Text(
                             text = "${test.book.code} Test ${test.testNumber}",
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            modifier = Modifier.padding(horizontal = IeltsSpacing.Sm, vertical = IeltsSpacing.Xs),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (test.hasAnySeededSection) MaterialTheme.colorScheme.primary else LockedSlate
@@ -235,19 +261,19 @@ private fun PracticeTestCard(
                     if (!test.hasAnySeededSection) {
                         Surface(
                             color = LockedSlateBg,
-                            shape = RoundedCornerShape(8.dp),
+                            shape = MaterialTheme.shapes.small,
                             border = BorderStroke(1.dp, NeutralBorder)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = IeltsSpacing.Sm, vertical = IeltsSpacing.Xs),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Lock,
-                                    contentDescription = null,
+                                    contentDescription = "Locked",
                                     tint = LockedSlate,
-                                    modifier = Modifier.size(13.dp)
+                                    modifier = Modifier.size(16.dp)
                                 )
                                 Text(
                                     text = "Seed missing",
@@ -260,18 +286,18 @@ private fun PracticeTestCard(
                     } else if (allSeededDone) {
                         Surface(
                             color = SuccessGreenBg,
-                            shape = RoundedCornerShape(8.dp)
+                            shape = MaterialTheme.shapes.small
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = IeltsSpacing.Sm, vertical = IeltsSpacing.Xs),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
+                                    contentDescription = "Completed",
                                     tint = SuccessGreen,
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(16.dp)
                                 )
                                 Text(
                                     text = "Done",
@@ -312,7 +338,7 @@ private fun PracticeTestCard(
             }
 
             if (test.hasAnySeededSection) {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
                     if (test.readingStatus != SectionStatus.LOCKED) {
                         Text(
                             text = "Reading: ${test.readingTitle}",
@@ -341,7 +367,7 @@ private fun PracticeTestCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
             ) {
                 SkillStatusTile(
                     state = listeningState,
@@ -357,7 +383,7 @@ private fun PracticeTestCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
             ) {
                 SkillStatusTile(
                     state = writingState,
@@ -410,6 +436,7 @@ private fun SkillStatusTile(
 
     Surface(
         modifier = modifier
+            .defaultMinSize(minHeight = 64.dp)
             .then(
                 if (!isLocked) {
                     Modifier.clickable(onClick = onClick)
@@ -417,59 +444,56 @@ private fun SkillStatusTile(
                     Modifier
                 }
             ),
-        shape = RoundedCornerShape(10.dp),
+        shape = MaterialTheme.shapes.medium,
         color = containerColor,
         border = BorderStroke(1.dp, borderColor)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+                .padding(horizontal = IeltsSpacing.Sm, vertical = IeltsSpacing.Sm),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
                     text = state.skill.label,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = if (isLocked) LockedSlate else MaterialTheme.colorScheme.onSurface
+                    color = if (isLocked) LockedSlate else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Icon(
-                    imageVector = when (state.status) {
-                        SectionStatus.LOCKED -> Icons.Default.Lock
-                        SectionStatus.AVAILABLE -> Icons.Default.PlayArrow
-                        SectionStatus.COMPLETED -> Icons.Default.CheckCircle
-                    },
-                    contentDescription = state.status.label,
-                    tint = accentColor,
-                    modifier = Modifier.size(16.dp)
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = accentColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
                 Text(
                     text = state.subtitle,
                     style = MaterialTheme.typography.labelSmall,
                     color = if (isLocked) LockedSlate else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = accentColor
+                    overflow = TextOverflow.Ellipsis
                 )
             }
+            Spacer(modifier = Modifier.width(IeltsSpacing.Xs))
+            Icon(
+                imageVector = when (state.status) {
+                    SectionStatus.LOCKED -> Icons.Default.Lock
+                    SectionStatus.AVAILABLE -> Icons.Default.PlayArrow
+                    SectionStatus.COMPLETED -> Icons.Default.CheckCircle
+                },
+                contentDescription = "${state.skill.label} ${state.status.label}",
+                tint = accentColor,
+                modifier = Modifier.size(IeltsSpacing.ActionIcon)
+            )
         }
     }
 }

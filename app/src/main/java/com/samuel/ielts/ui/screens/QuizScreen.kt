@@ -34,6 +34,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -67,6 +68,7 @@ import com.samuel.ielts.model.QuizSkillMode
 import com.samuel.ielts.model.ReadingPassage
 import com.samuel.ielts.model.TfngOption
 import com.samuel.ielts.model.YnngOption
+import com.samuel.ielts.ui.theme.IeltsSpacing
 import kotlinx.coroutines.launch
 
 @Composable
@@ -174,8 +176,8 @@ fun QuizScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            contentPadding = PaddingValues(IeltsSpacing.Md),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
         ) {
             if (checked) {
                 item {
@@ -251,9 +253,10 @@ fun QuizScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 4.dp, bottom = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        .padding(top = IeltsSpacing.Xs, bottom = IeltsSpacing.Md),
+                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
                 ) {
+                    // Word-count warnings never block quiz submission.
                     Button(
                         onClick = {
                             checked = true
@@ -281,7 +284,9 @@ fun QuizScreen(
                                 )
                             )
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(IeltsSpacing.TouchTarget)
                     ) {
                         Text("Check Answers")
                     }
@@ -292,7 +297,8 @@ fun QuizScreen(
                             tfngAnswers.clear()
                             ynngAnswers.clear()
                             fillAnswers.clear()
-                        }
+                        },
+                        modifier = Modifier.height(IeltsSpacing.TouchTarget)
                     ) {
                         Text("Reset")
                     }
@@ -405,7 +411,7 @@ private fun LockedQuizPlaceholder(
                     imageVector = Icons.Default.Lock,
                     contentDescription = "Locked",
                     tint = LockedSlate,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(IeltsSpacing.HeroIcon)
                 )
                 Text(
                     text = "$testLabel ${skill.label} is locked",
@@ -508,15 +514,21 @@ private fun PassagePane(
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    Icon(
-                        imageVector = if (expanded) {
-                            Icons.Default.KeyboardArrowUp
-                        } else {
-                            Icons.Default.KeyboardArrowDown
-                        },
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    IconButton(
+                        onClick = onToggleExpanded,
+                        modifier = Modifier.size(IeltsSpacing.TouchTarget)
+                    ) {
+                        Icon(
+                            imageVector = if (expanded) {
+                                Icons.Default.KeyboardArrowUp
+                            } else {
+                                Icons.Default.KeyboardArrowDown
+                            },
+                            contentDescription = if (expanded) "Collapse passage" else "Expand passage",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                        )
+                    }
                 }
             }
 
@@ -633,8 +645,9 @@ private fun ResultBanner(
             ) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = SuccessGreen
+                    contentDescription = "Quiz score checked",
+                    tint = SuccessGreen,
+                    modifier = Modifier.size(IeltsSpacing.FeatureIcon)
                 )
                 Column {
                     Text(
@@ -1014,13 +1027,13 @@ private fun FillBlankQuestionCard(
             if (overWordLimit) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Warning,
-                        contentDescription = null,
+                        contentDescription = "Word limit warning",
                         tint = WarningAmber,
-                        modifier = Modifier.height(16.dp)
+                        modifier = Modifier.size(IeltsSpacing.ActionIcon)
                     )
                     Text(
                         text = "Warning: your answer exceeds the word hint. You can still submit.",

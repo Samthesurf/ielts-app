@@ -29,9 +29,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.samuel.ielts.model.BookProgressSummary
 import com.samuel.ielts.model.IeltsScoring
+import com.samuel.ielts.model.NextStepCardData
 import com.samuel.ielts.model.QuestionTypeAccuracy
 import com.samuel.ielts.model.SkillProgress
+import com.samuel.ielts.model.StudyProgressSnapshot
 import com.samuel.ielts.model.TestProgressRecord
+import com.samuel.ielts.ui.components.NextStepCardsSection
+import com.samuel.ielts.ui.components.StreakFlameTile
+import com.samuel.ielts.ui.theme.IeltsSpacing
 
 @Composable
 fun ProgressScreen(
@@ -41,6 +46,9 @@ fun ProgressScreen(
     bookSummaries: List<BookProgressSummary> = emptyList(),
     questionTypeStats: List<QuestionTypeAccuracy> = emptyList(),
     targetBand: Double = 7.5,
+    streakSnapshot: StudyProgressSnapshot = StudyProgressSnapshot(),
+    nextSteps: List<NextStepCardData> = emptyList(),
+    onSelectNextStep: (NextStepCardData) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val activeSkillBands = skillProgress.filter { it.band > 0.0 }
@@ -53,18 +61,18 @@ fun ProgressScreen(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        contentPadding = PaddingValues(IeltsSpacing.Md),
+        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
     ) {
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
                 Text(
                     text = "Your Progress",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Aggregated across Books C20, C21, and C19 with weakest question-type focus.",
+                    text = "Aggregated across Books C20, C21, and C19 with daily streak and weakest question-type focus.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -72,13 +80,32 @@ fun ProgressScreen(
         }
 
         item {
+            StreakFlameTile(
+                snapshot = streakSnapshot,
+                compact = false
+            )
+        }
+
+        item {
             OverallProgressSummaryCard(
                 overallBand = overallBand,
+                bestOverallBand = streakSnapshot.bestOverallBand,
                 targetBand = targetBand,
                 completedSections = totalCompleted,
                 availableSections = totalAvailable,
                 weakestType = weakestType
             )
+        }
+
+        if (nextSteps.isNotEmpty()) {
+            item {
+                NextStepCardsSection(
+                    title = "Per-Skill Next Steps",
+                    subtitle = "Prioritized by your weakest question type and recent attempts.",
+                    steps = nextSteps,
+                    onSelectStep = onSelectNextStep
+                )
+            }
         }
 
         if (bookSummaries.isNotEmpty()) {
@@ -124,6 +151,7 @@ fun ProgressScreen(
 @Composable
 private fun OverallProgressSummaryCard(
     overallBand: Double,
+    bestOverallBand: Double,
     targetBand: Double,
     completedSections: Int,
     availableSections: Int,
@@ -131,20 +159,23 @@ private fun OverallProgressSummaryCard(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.large,
         color = BrandBlueSoft.copy(alpha = 0.55f),
         border = BorderStroke(1.dp, BrandBlue.copy(alpha = 0.25f))
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.padding(IeltsSpacing.Md),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
+                ) {
                     Text(
                         text = "Current Overall Band",
                         style = MaterialTheme.typography.titleSmall,
@@ -155,10 +186,18 @@ private fun OverallProgressSummaryCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (bestOverallBand > 0.0) {
+                        Text(
+                            text = "Best recorded overall: Band ${IeltsScoring.formatBand(bestOverallBand)}",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = BrandTeal
+                        )
+                    }
                 }
                 Text(
                     text = IeltsScoring.formatBand(overallBand),
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
                     color = BrandBlue
                 )
@@ -179,14 +218,14 @@ private fun WeakestTypeTagBanner(
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
+        shape = MaterialTheme.shapes.medium,
         color = bgColor,
         border = BorderStroke(1.dp, borderColor)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = IeltsSpacing.Md, vertical = IeltsSpacing.Sm),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -203,11 +242,11 @@ private fun WeakestTypeTagBanner(
             if (weakestType != null) {
                 Surface(
                     color = WarningAmber,
-                    shape = RoundedCornerShape(6.dp)
+                    shape = MaterialTheme.shapes.small
                 ) {
                     Text(
                         text = "${weakestType.accuracyPercent}% (${weakestType.correct}/${weakestType.total})",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        modifier = Modifier.padding(horizontal = IeltsSpacing.Sm, vertical = IeltsSpacing.Xs),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -224,13 +263,13 @@ private fun AllBooksAggregationCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, NeutralBorder)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(IeltsSpacing.Md),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
         ) {
             Text(
                 text = "All Books Summary (C20, C21, C19)",
@@ -247,13 +286,13 @@ private fun AllBooksAggregationCard(
 
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = MaterialTheme.shapes.medium,
                     color = if (summary.hasSeed) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f) else LockedSlateBg,
                     border = BorderStroke(1.dp, NeutralBorder)
                 ) {
                     Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.padding(IeltsSpacing.Md),
+                        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -286,7 +325,7 @@ private fun AllBooksAggregationCard(
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
                         ) {
                             BookSkillMiniChip("L", summary.listeningBand, Modifier.weight(1f))
                             BookSkillMiniChip("R", summary.readingBand, Modifier.weight(1f))
@@ -324,13 +363,13 @@ private fun BookSkillMiniChip(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(6.dp),
+        shape = MaterialTheme.shapes.small,
         color = if (band != null) BrandBlueSoft.copy(alpha = 0.7f) else MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, NeutralBorder)
     ) {
         Text(
             text = if (band != null) "$code ${IeltsScoring.formatBand(band)}" else "$code --",
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = IeltsSpacing.Sm, vertical = IeltsSpacing.Xs),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
             color = if (band != null) BrandBlue else LockedSlate
@@ -345,13 +384,13 @@ private fun QuestionTypeAccuracyCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, NeutralBorder)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(IeltsSpacing.Md),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -366,12 +405,12 @@ private fun QuestionTypeAccuracyCard(
                 if (weakestType != null) {
                     Surface(
                         color = ErrorRedBg,
-                        shape = RoundedCornerShape(8.dp),
+                        shape = MaterialTheme.shapes.small,
                         border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.35f))
                     ) {
                         Text(
                             text = "Weakest: ${weakestType.category.tag}",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            modifier = Modifier.padding(horizontal = IeltsSpacing.Sm, vertical = IeltsSpacing.Xs),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = ErrorRed
@@ -396,7 +435,7 @@ private fun QuestionTypeAccuracyCard(
                     }
                     val fraction = entry.accuracyRatio.toFloat().coerceIn(0f, 1f)
 
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -404,7 +443,7 @@ private fun QuestionTypeAccuracyCard(
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
                             ) {
                                 Text(
                                     text = entry.category.tag,
@@ -414,11 +453,11 @@ private fun QuestionTypeAccuracyCard(
                                 if (isWeakest) {
                                     Surface(
                                         color = WarningAmberBg,
-                                        shape = RoundedCornerShape(6.dp)
+                                        shape = MaterialTheme.shapes.small
                                     ) {
                                         Text(
                                             text = "Weakest",
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            modifier = Modifier.padding(horizontal = IeltsSpacing.Sm, vertical = 2.dp),
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = WarningAmber
@@ -442,15 +481,15 @@ private fun QuestionTypeAccuracyCard(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(10.dp)
-                                .clip(RoundedCornerShape(5.dp))
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(4.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth(fraction)
                                     .fillMaxHeight()
-                                    .clip(RoundedCornerShape(5.dp))
+                                    .clip(RoundedCornerShape(4.dp))
                                     .background(barColor)
                             )
                         }
@@ -470,13 +509,13 @@ private fun SimpleHorizontalBarsCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, NeutralBorder)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(IeltsSpacing.Md),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
         ) {
             Text(
                 text = title,
@@ -493,7 +532,7 @@ private fun SimpleHorizontalBarsCard(
             } else {
                 items.forEach { item ->
                     val fraction = (item.band / 9.0).toFloat().coerceIn(0f, 1f)
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -540,13 +579,13 @@ private fun SimpleVerticalBarsCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, NeutralBorder)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(IeltsSpacing.Md),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
         ) {
             Text(
                 text = title,
@@ -583,8 +622,8 @@ private fun SimpleVerticalBarsCard(
                             )
                             Box(
                                 modifier = Modifier
-                                    .padding(vertical = 6.dp)
-                                    .width(34.dp)
+                                    .padding(vertical = IeltsSpacing.Sm)
+                                    .width(32.dp)
                                     .weight(1f),
                                 contentAlignment = Alignment.BottomCenter
                             ) {
@@ -592,14 +631,14 @@ private fun SimpleVerticalBarsCard(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .fillMaxHeight()
-                                        .clip(RoundedCornerShape(8.dp))
+                                        .clip(MaterialTheme.shapes.small)
                                         .background(MaterialTheme.colorScheme.surfaceVariant)
                                 )
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .fillMaxHeight(fraction)
-                                        .clip(RoundedCornerShape(8.dp))
+                                        .clip(MaterialTheme.shapes.small)
                                         .background(BrandBlue)
                                 )
                             }

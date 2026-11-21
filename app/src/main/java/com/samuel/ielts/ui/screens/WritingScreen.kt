@@ -27,6 +27,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -56,6 +57,7 @@ import com.samuel.ielts.model.InlineComment
 import com.samuel.ielts.model.WritingCriterion
 import com.samuel.ielts.model.WritingTaskData
 import com.samuel.ielts.model.WritingTaskType
+import com.samuel.ielts.ui.theme.IeltsSpacing
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.json.JSONArray
@@ -375,8 +377,8 @@ fun WritingScreen(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(IeltsSpacing.Md),
+        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -469,9 +471,11 @@ fun WritingScreen(
                             fontWeight = FontWeight.SemiBold,
                             color = if (underWordWarning) WarningAmber else SuccessGreen
                         )
+                        // Word-count warnings are advisory only and never disable submission.
                         Button(
                             onClick = { triggerMark() },
-                            enabled = !isMarking
+                            enabled = !isMarking,
+                            modifier = Modifier.height(IeltsSpacing.TouchTarget)
                         ) {
                             if (isMarking) {
                                 CircularProgressIndicator(
@@ -578,8 +582,9 @@ private fun WritingMarkErrorCard(
             ) {
                 Icon(
                     imageVector = Icons.Default.Warning,
-                    contentDescription = null,
-                    tint = ErrorRed
+                    contentDescription = "Marking error warning",
+                    tint = ErrorRed,
+                    modifier = Modifier.size(IeltsSpacing.ActionIcon)
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
@@ -683,8 +688,9 @@ private fun WordCountWarningBanner(
         ) {
             Icon(
                 imageVector = Icons.Default.Warning,
-                contentDescription = null,
-                tint = WarningAmber
+                contentDescription = "Word count warning",
+                tint = WarningAmber,
+                modifier = Modifier.size(IeltsSpacing.ActionIcon)
             )
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
@@ -960,15 +966,21 @@ private fun Band75RewriteCollapsibleCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Icon(
-                    imageVector = if (expanded) {
-                        Icons.Default.KeyboardArrowUp
-                    } else {
-                        Icons.Default.KeyboardArrowDown
-                    },
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
+                IconButton(
+                    onClick = onToggle,
+                    modifier = Modifier.size(IeltsSpacing.TouchTarget)
+                ) {
+                    Icon(
+                        imageVector = if (expanded) {
+                            Icons.Default.KeyboardArrowUp
+                        } else {
+                            Icons.Default.KeyboardArrowDown
+                        },
+                        contentDescription = if (expanded) "Collapse Band 7.5 rewrite" else "Expand Band 7.5 rewrite",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                    )
+                }
             }
 
             AnimatedVisibility(visible = expanded) {

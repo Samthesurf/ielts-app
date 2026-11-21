@@ -1,6 +1,7 @@
 package com.samuel.ielts.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -9,14 +10,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -32,6 +36,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.samuel.ielts.model.IeltsScoring
 import com.samuel.ielts.model.SpeakingPromptData
+import com.samuel.ielts.ui.components.IeltsIcons
+import com.samuel.ielts.ui.theme.IeltsSpacing
 
 private val SpeakingSelfBandOptions = listOf(5.5, 6.0, 6.5, 7.0, 7.5, 8.0)
 
@@ -42,25 +48,51 @@ fun SpeakingPracticeScreen(
     initialBand: Double?,
     onSaveBand: (Double) -> Unit,
     onBack: () -> Unit,
+    availableTests: List<Pair<String, String>> = emptyList(),
+    selectedTestId: String = speakingData.testId,
+    onSelectTest: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var notes by rememberSaveable(speakingData.testId) { mutableStateOf("") }
     var selectedBand by rememberSaveable(speakingData.testId) {
         mutableDoubleStateOf(initialBand ?: 6.5)
     }
+    var savedBandNotice by rememberSaveable(speakingData.testId) {
+        mutableStateOf<Double?>(null)
+    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(IeltsSpacing.Md),
+        verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Md)
     ) {
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = BrandTealSoft,
+                    modifier = Modifier.size(IeltsSpacing.TouchTarget)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = IeltsIcons.Mic,
+                            contentDescription = "Speaking practice microphone",
+                            tint = BrandTeal,
+                            modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                        )
+                    }
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
+                ) {
                     Text(
                         text = "$testLabel Speaking",
                         style = MaterialTheme.typography.headlineSmall,
@@ -72,8 +104,55 @@ fun SpeakingPracticeScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                OutlinedButton(onClick = onBack) {
-                    Text("Back")
+            }
+        }
+
+        if (availableTests.size > 1) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                ) {
+                    availableTests.forEach { (id, label) ->
+                        FilterChip(
+                            selected = id == selectedTestId,
+                            onClick = { onSelectTest(id) },
+                            label = { Text(label) }
+                        )
+                    }
+                }
+            }
+        }
+
+        val noticeBand = savedBandNotice
+        if (noticeBand != null) {
+            item {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    color = SuccessGreenBg,
+                    border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.4f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(IeltsSpacing.Md),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "Speaking band saved",
+                            tint = SuccessGreen,
+                            modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                        )
+                        Text(
+                            text = "Saved $testLabel Speaking Band ${IeltsScoring.formatBand(noticeBand)} to Progress.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = SuccessGreen
+                        )
+                    }
                 }
             }
         }
@@ -105,13 +184,13 @@ fun SpeakingPracticeScreen(
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = MaterialTheme.shapes.large,
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = BorderStroke(1.dp, NeutralBorder)
             ) {
                 Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier = Modifier.padding(IeltsSpacing.Md),
+                    verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
                 ) {
                     Text(
                         text = "Practice Notes and Band Log",
@@ -132,8 +211,10 @@ fun SpeakingPracticeScreen(
                         fontWeight = FontWeight.SemiBold
                     )
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
                     ) {
                         SpeakingSelfBandOptions.forEach { band ->
                             FilterChip(
@@ -144,8 +225,14 @@ fun SpeakingPracticeScreen(
                         }
                     }
                     Button(
-                        onClick = { onSaveBand(IeltsScoring.roundToHalfBand(selectedBand)) },
-                        modifier = Modifier.fillMaxWidth()
+                        onClick = {
+                            val rounded = IeltsScoring.roundToHalfBand(selectedBand)
+                            savedBandNotice = rounded
+                            onSaveBand(rounded)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IeltsSpacing.TouchTarget)
                     ) {
                         Text("Save Speaking Band (${IeltsScoring.formatBand(selectedBand)})")
                     }
@@ -163,25 +250,25 @@ private fun SpeakingPartCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, NeutralBorder)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(IeltsSpacing.Md),
+            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
             ) {
                 Surface(
                     color = BrandTealSoft,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = MaterialTheme.shapes.small
                 ) {
                     Text(
                         text = partBadge,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = IeltsSpacing.Sm, vertical = IeltsSpacing.Xs),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = BrandTeal
