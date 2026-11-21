@@ -408,7 +408,8 @@
        "needs_review": true,
        "review_note": "prompt: repeated-char OCR run 'sss'"
       }
-     ]
+     ],
+     "imageAsset": "images/maps/c19_t1s2g2.png"
     },
     {
      "section": "Listening Section 3",
