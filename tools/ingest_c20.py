@@ -41,6 +41,346 @@ INSTR_RE = re.compile(
     r"You may|Which section|Which paragraph|Reading passage \d has)")
 
 
+# --- Cell-aware table parsing (wrapped multi-column tables) ---
+# pdftotext -layout keeps the table columns aligned, but clean() collapses
+# the whitespace, so stitching cleaned lines mashes fragments from different
+# columns together (e.g. 'the station keen on 1 ___ good place for a drink').
+# These helpers slice each raw layout line by the column x-ranges derived
+# from the header row, join each cell's wrapped fragments vertically, and
+# only then form one prompt per gap number.
+
+TABLE_HEADERS = [
+    ("Name of", "Location", "Reason"),  # T1 restaurant table
+    ("Name of company", "Information about costs",
+     "Additional notes"),  # T3 furniture table
+]
+
+TABLE_STOP = re.compile(
+    r"^(TEST|Section|Questions?|Choose|Complete|Write|Match|Look|Label|"
+    r"Which|NB\b|You may|For each|In boxes|Reading passage|LISTENING|READING)",
+    re.I)
+
+
+def norm_gap_spacing(s):
+    """Ensure a space after ___ when the source glued text to the dots."""
+    return re.sub(r"___([A-Za-z\u00a3$])", r"___ \1", s)
+
+
+def is_table_header(cleaned):
+    for markers in TABLE_HEADERS:
+        if all(m in cleaned for m in markers):
+            return True
+    return False
+
+
+def split_header_segments(header_raw):
+    return [p for p in re.split(r"\s{3,}", header_raw.strip()) if p]
+
+
+def column_bounds(header_raw, segments):
+    """Column x-ranges keyed on each header title's start offset.
+
+    Wrapped body fragments begin at their column's left edge, so the
+    header starts themselves are the cut points (midpoints slice words
+    like 'especially' or 'renting' in two).
+    """
+    starts, pos = [], 0
+    for seg in segments:
+        j = header_raw.find(seg, pos)
+        if j < 0:
+            return None
+        starts.append(j)
+        pos = j + len(seg)
+    return [(0 if i == 0 else starts[i],
+             starts[i + 1] if i + 1 < len(starts) else None)
+            for i in range(len(segments))]
+
+
+def body_bounds(body, ncols):
+    """Derive column x-ranges from the body's own text runs.
+
+    Header titles are often offset from the body columns, so cut at the
+    median gap between runs on lines holding all ncols columns.
+    Returns None when too few full lines exist.
+    """
+    gaps: list = [[] for _ in range(ncols - 1)]
+    for r in body:
+        runs = [(m.start(), m.end())
+                for m in re.finditer(r"\S+(?: \S+)*", r)]
+        if len(runs) < ncols:
+            continue
+        runs = runs[:ncols]
+        for j in range(ncols - 1):
+            gaps[j].append((runs[j][1] + runs[j + 1][0]) // 2)
+    if any(len(g) < 2 for g in gaps):
+        return None
+
+    def med(xs):
+        xs = sorted(xs)
+        return xs[len(xs) // 2]
+
+    cuts = [med(g) for g in gaps]
+    los, his = [0] + cuts, cuts + [None]
+    return list(zip(los, his))
+
+
+def slice_row(raw, bounds):
+    """Slice a raw layout line into one fragment per column.
+
+    A boundary can cut a word in two ('rentin|g', 'goo|d', dots+'are');
+    when the end of one fragment is contiguous with the start of the next
+    (no whitespace between in the raw line) the leading token belongs to
+    the previous column, so glue it back.
+    """
+    frags, spans = [], []
+    for lo, hi in bounds:
+        seg = raw[lo:hi] if hi is not None else raw[lo:]
+        if seg.strip():
+            start = lo + (len(seg) - len(seg.lstrip()))
+            end = lo + len(seg.rstrip())
+            frags.append(seg.strip())
+            spans.append((start, end))
+        else:
+            frags.append("")
+            spans.append(None)
+    for i in range(1, len(frags)):
+        if (frags[i] and frags[i - 1] and spans[i] and spans[i - 1]
+                and spans[i - 1][1] == spans[i][0]):
+            mm = re.match(r"\S+", frags[i])
+            tok = mm.group(0) if mm else ""
+            frags[i - 1] += tok
+            frags[i] = frags[i][len(tok):].strip()
+    return frags
+
+
+HUNGRY_TAIL = re.compile(
+    r"(the|a|an|of|to|for|from|with|and|or|most|per|at|in|on|is|are|was|-)$",
+    re.I)
+
+
+def normalize_table_text(text):
+    text = GAP.sub(lambda m: f"{m.group(1)} ___", text)
+    text = norm_gap_spacing(text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def redact_gaps(text, keep):
+    def rep(m):
+        return m.group(0) if int(m.group(1)) == keep else "\u2026"
+    return re.sub(r"(?<!\d)(\d{1,2}) ___", rep, text)
+
+
+def redact_all_gaps(text):
+    return re.sub(r"(?<!\d)(\d{1,2}) ___", "\u2026", text)
+
+
+def parse_one_table(lines, hi, test_no, section):
+    """Parse one wrapped table starting at header index hi.
+
+    Returns dict with title/headers/prompts plus '_next' (first index
+    past the table body), or None if the header has no usable columns.
+    """
+    n = len(lines)
+    segments = split_header_segments(lines[hi])
+    if len(segments) < 3:
+        return None
+    bounds = column_bounds(lines[hi], segments)
+    if bounds is None:
+        return None
+    headers = list(segments)
+    j = hi + 1
+    cont_lines = []
+    while j < n:  # header continuations, e.g. 'restaurant ... recommendation'
+        c = clean(lines[j])
+        if not c:
+            break
+        if (GAP.search(c) or TABLE_STOP.match(c)
+                or Q_HEAD_FULL.match(c) or SEC_HEAD.match(c)
+                or TEST_HEAD.match(c) or KEY_HEAD.search(c)):
+            break
+        cont_lines.append(lines[j])
+        j += 1
+        if j - hi > 4:
+            break
+    body = []
+    k = j
+    while k < n:
+        c = clean(lines[k])
+        if (TEST_HEAD.match(c) or SEC_HEAD.match(c)
+                or Q_HEAD_FULL.match(c) or KEY_HEAD.search(c)
+                or c.startswith("Section ") or TABLE_STOP.match(c)):
+            break
+        body.append(lines[k])
+        k += 1
+        if k - j > 90:
+            break
+    full = [r for r in body if clean(r)]
+    bounds = body_bounds(full, len(segments)) or bounds
+    for cr in cont_lines:
+        frags = slice_row(cr, bounds)
+        headers = [h + (" " + f if f else "")
+                   for h, f in zip(headers, frags)]
+    blocks, cur = [], []
+    for r in body:
+        if not clean(r):
+            if cur:
+                blocks.append(cur)
+                cur = []
+        else:
+            cur.append(r)
+    if cur:
+        blocks.append(cur)
+    # Segment blocks into rows. T1 rows are blank-separated, but T3 rows
+    # run together, so also start a new row when a line refills column 0
+    # with a named entry while the current row already holds gaps.
+    # A lone fragment in column 0 whose row has a hungry tail elsewhere
+    # ('... for the most' + 'up-to-date prices') is a wrap, not a row.
+    rows = []
+    for b in blocks:
+        cur_cols, cur_gap = None, False
+        for r in b:
+            frags = slice_row(r, bounds)
+            has_gap = bool(GAP.search(clean(r)))
+            nonempty = [i for i, f in enumerate(frags) if f]
+            if (nonempty == [0] and cur_cols is not None
+                    and any(cur_cols[0])):
+                tails = [" ".join(c) for c in cur_cols]
+                hungry = [j for j in range(1, len(tails))
+                          if tails[j] and HUNGRY_TAIL.search(tails[j])]
+                if hungry:
+                    cur_cols[hungry[-1]].append(frags[0])
+                    cur_gap = cur_gap or has_gap
+                    continue
+            if cur_cols is None:
+                cur_cols = [[f] if f else [] for f in frags]
+                cur_gap = has_gap
+            elif (frags[0] and any(frags[1:])
+                    and re.search(r"[A-Za-z]", frags[0]) and cur_gap):
+                rows.append(cur_cols)
+                cur_cols = [[f] if f else [] for f in frags]
+                cur_gap = has_gap
+            else:
+                for ci, f in enumerate(frags):
+                    if f:
+                        cur_cols[ci].append(f)
+                cur_gap = cur_gap or has_gap
+        if cur_cols is not None:
+            rows.append(cur_cols)
+    rows = [c for c in rows
+            if any(GAP.search(" ".join(f)) for f in c)]
+    if not rows:
+        return None
+    prompts = {}
+    for cols in rows:
+        rawcells = [" ".join(f) for f in cols]
+        qnos = []
+        for cell in rawcells:
+            for gm in GAP.finditer(cell):
+                q = int(gm.group(1))
+                if q not in qnos:
+                    qnos.append(q)
+        cells = [normalize_table_text(c) for c in rawcells]
+        name = redact_all_gaps(cells[0]) if cells[0] else ""
+        if not name:
+            for c in cells[1:]:
+                if c:
+                    name = redact_all_gaps(c)
+                    break
+        for q in qnos:
+            ci = next(i for i, c in enumerate(cells)
+                      if re.search(rf"(?<!\d){q} ___", c))
+            cell_q = redact_gaps(cells[ci], q)
+            if ci == 0:
+                prompt = f"{headers[0]}: {cell_q}"
+            else:
+                prompt = f"{name} - {headers[ci]}: {cell_q}"
+            prompts[q] = prompt
+    title = ""
+    t = hi - 1
+    while t >= 0 and not clean(lines[t]):
+        t -= 1
+    if t >= 0:
+        c = clean(lines[t])
+        if (not GAP.search(c) and not TABLE_STOP.match(c)
+                and not Q_HEAD_FULL.match(c) and not SEC_HEAD.match(c)
+                and not TEST_HEAD.match(c) and not KEY_HEAD.search(c)):
+            title = c
+    return {"test": test_no, "section": section, "title": title,
+            "headers": headers, "prompts": prompts, "_next": k}
+
+
+def parse_tables(lines):
+    """Scan raw layout lines for wrapped tables; return list of dicts."""
+    tables = []
+    cur_t, cur_sec = None, None
+    i, n = 0, len(lines)
+    while i < n:
+        cl = clean(lines[i])
+        m = TEST_HEAD.match(cl)
+        if m:
+            cur_t = int(m.group(1))
+            cur_sec = None
+            i += 1
+            continue
+        m = SEC_HEAD.match(cl)
+        if m:
+            cur_sec = f"Listening Section {m.group(1)}"
+            i += 1
+            continue
+        if (cur_t is not None and cur_sec is not None
+                and is_table_header(cl)):
+            t = parse_one_table(lines, i, cur_t, cur_sec)
+            if t is not None:
+                tables.append(t)
+                i = t.pop("_next")
+                continue
+        i += 1
+    return tables
+
+
+PARA_STUB = re.compile(r"^(Paragraph [A-G])[\s….․…]*(.*)$", re.S)
+
+
+def clean_paragraph_stubs(bodies):
+    """Matching-heading prompts should be just the label.
+
+    The generic stitcher leaves leader dots ('Paragraph A………') and can
+    glue the next passage title onto the last stub ('Paragraph F…………
+    Can the ...?'). Neither is a numbered blank; keep the label only.
+    """
+    for test in bodies.values():
+        for g in test["groups"]:
+            for q in g.questions:
+                if re.search(r"\d\s*___", q["prompt"]):
+                    continue
+                m = PARA_STUB.match(q["prompt"])
+                if m:
+                    q["prompt"] = m.group(1)
+
+
+def apply_table_fixes(bodies, tables):
+    """Override garbled stitched prompts with cell-aware ones (in place)."""
+    for t in tables:
+        test = bodies.get(t["test"])
+        if not test:
+            continue
+        for g in test["groups"]:
+            if g.section != t["section"]:
+                continue
+            if not any(q["qNo"] in t["prompts"] for q in g.questions):
+                continue
+            for q in g.questions:
+                if q["qNo"] in t["prompts"]:
+                    q["prompt"] = t["prompts"][q["qNo"]]
+            base = " ".join(g.instructions).strip()
+            m = re.search(r"for each answer\.", base)
+            if m:
+                base = base[:m.end()]
+            if t["title"] and t["title"] not in base:
+                base = (base + " " + t["title"]).strip()
+            g.instructions = [base] if base else []
+
+
 def extract_text(pdf):
     tmp = tempfile.mktemp(suffix=".txt")
     subprocess.run(["pdftotext", "-layout", pdf, tmp], check=True)
@@ -257,6 +597,7 @@ def parse_body(lines):
             assert cur_group is not None
             cur_group.fresh_range = False
             prompt = clean(GAP.sub(lambda x: f"{x.group(1)} ___", line))
+            prompt = norm_gap_spacing(prompt)
             for qm in GAP.finditer(line):
                 q = int(qm.group(1))
                 if not any(x["qNo"] == q for x in cur_group.questions):
@@ -271,6 +612,7 @@ def parse_body(lines):
             q = int(m.group(1))
             prompt = clean(GAP.sub(lambda x: f"{x.group(1)} ___",
                                    clean(m.group(2))))
+            prompt = norm_gap_spacing(prompt)
             cur_group.questions.append(
                 {"qNo": q, "prompt": prompt,
                  "choices": list(cur_group.options)})
@@ -304,6 +646,13 @@ def build(pdf, out):
     lines = extract_text(pdf)
     keys = parse_keys(lines)
     bodies = parse_body(lines)
+    tables = parse_tables(lines)
+    apply_table_fixes(bodies, tables)
+    clean_paragraph_stubs(bodies)
+    print(f"cell-aware tables fixed: {len(tables)} " +
+          ", ".join(f"T{t['test']} {t['section']} "
+                    f"Q{min(t['prompts'])}-{max(t['prompts'])}"
+                    for t in tables))
     data = {"book": "C20", "tests": []}
     problems = []
     for t in sorted(bodies):

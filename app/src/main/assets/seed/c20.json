@@ -207,66 +207,66 @@
     {
      "section": "Listening Section 1",
      "passage_title": null,
-     "instructions": "Complete the table below. Write ONE WORD AND/OR A NUMBER for each answer. Name of Location Reason for Other comments restaurant recommendation The Junction Greyson Good for people Quite expensive",
+     "instructions": "Complete the table below. Write ONE WORD AND/OR A NUMBER for each answer.",
      "word_limit": "ONE WORD AND/OR A NUMBER",
      "questions": [
       {
        "qNo": 1,
-       "prompt": "the station keen on 1 ___ good place for a drink",
+       "prompt": "The Junction - Reason for recommendation: Good for people who are especially keen on 1 ___",
        "choices": [],
        "answer": "fish"
       },
       {
        "qNo": 2,
-       "prompt": "Street, near who are especially The 2 ___is",
+       "prompt": "The Junction - Other comments: Quite expensive The 2 ___ is good place for a drink",
        "choices": [],
        "answer": "roof"
       },
       {
        "qNo": 3,
-       "prompt": "Paloma In Bow Street 3 ___food, good Staff are very friendly next to the for sharing Need to pay £50 deposit cinema A limited selection of",
+       "prompt": "Paloma - Reason for recommendation: 3 ___ food, good for sharing",
        "choices": [],
        "answer": "Spanish"
       },
       {
        "qNo": 4,
-       "prompt": "4 ___food on the menu",
+       "prompt": "Paloma - Other comments: Staff are very friendly Need to pay £50 deposit A limited selection of 4 ___ food on the menu",
        "choices": [],
        "answer": "vegetarian"
       },
       {
        "qNo": 5,
-       "prompt": "5 ___ 6 ___ All the 7 ___are person",
+       "prompt": "Name of restaurant: The 5 ___",
        "choices": [],
        "answer": "Audley"
       },
       {
        "qNo": 6,
-       "prompt": "5 ___ 6 ___ All the 7 ___are person",
+       "prompt": "The … - Location: At the top of a 6 ___",
        "choices": [],
        "answer": "hotel"
       },
       {
        "qNo": 7,
-       "prompt": "5 ___ 6 ___ All the 7 ___are person very good Portions probably of",
+       "prompt": "The … - Reason for recommendation: A famous chef All the 7 ___ are very good Only uses … ingredients",
        "choices": [],
        "answer": "reviews"
       },
       {
        "qNo": 8,
-       "prompt": "8 ___ingredients",
+       "prompt": "The … - Reason for recommendation: A famous chef All the … are very good Only uses 8 ___ ingredients",
        "choices": [],
        "answer": "local"
       },
       {
        "qNo": 9,
-       "prompt": "The At the top of a A famous chef Set lunch costs 9 ___ per",
+       "prompt": "The … - Other comments: Set lunch costs 9 ___ per person Portions probably of … size",
        "choices": [],
        "answer": "30/thirty"
       },
       {
        "qNo": 10,
-       "prompt": "Only uses 10 ___ size",
+       "prompt": "The … - Other comments: Set lunch costs … per person Portions probably of 10 ___ size",
        "choices": [],
        "answer": "average"
       }
@@ -583,7 +583,7 @@
      "questions": [
       {
        "qNo": 31,
-       "prompt": "pollution from 31 ___on the river bank.",
+       "prompt": "pollution from 31 ___ on the river bank.",
        "choices": [],
        "answer": "factories"
       },
@@ -595,7 +595,7 @@
       },
       {
        "qNo": 33,
-       "prompt": "Seals and even a 33 ___have been seen in the River Thames.",
+       "prompt": "Seals and even a 33 ___ have been seen in the River Thames.",
        "choices": [],
        "answer": "whale"
       },
@@ -625,7 +625,7 @@
       },
       {
        "qNo": 38,
-       "prompt": "Over 2 billion passengers already travel by 38 ___in cities round the world. -Changes in shopping habits mean the number of deliveries that are made is increasing. -Instead of road transport, goods could be transported by large freight barges",
+       "prompt": "Over 2 billion passengers already travel by 38 ___ in cities round the world. -Changes in shopping habits mean the number of deliveries that are made is increasing. -Instead of road transport, goods could be transported by large freight barges",
        "choices": [],
        "answer": "ferry"
       },
@@ -701,7 +701,7 @@
       },
       {
        "qNo": 8,
-       "prompt": "- nests are created in 8 ___where eggs are laid. Arrival of Polynesian settlers",
+       "prompt": "- nests are created in 8 ___ where eggs are laid. Arrival of Polynesian settlers",
        "choices": [],
        "answer": "soil"
       },
@@ -713,7 +713,7 @@
       },
       {
        "qNo": 10,
-       "prompt": "- 10 ___were an animal which they introduced that ate the kākāpõ's food sources. Protecting käkāpõ - Richard Henry, a conservationist, tried to protect the käkāpõ.",
+       "prompt": "- 10 ___ were an animal which they introduced that ate the kākāpõ's food sources. Protecting käkāpõ - Richard Henry, a conservationist, tried to protect the käkāpõ.",
        "choices": [],
        "answer": "deer"
       },
@@ -731,7 +731,7 @@
       },
       {
        "qNo": 13,
-       "prompt": "- a current goal of the Recovery Plan is to maintain the involvement of 13 ___in käkāpõ protection.",
+       "prompt": "- a current goal of the Recovery Plan is to maintain the involvement of 13 ___ in käkāpõ protection.",
        "choices": [],
        "answer": "stakeholders"
       }
@@ -831,19 +831,19 @@
      "questions": [
       {
        "qNo": 24,
-       "prompt": "24 ___Starting in the Bronze Age, many tools were made from elm and people also used it to make weapons. In the 18th century, it was grown to provide wood for boxes and",
+       "prompt": "24 ___ Starting in the Bronze Age, many tools were made from elm and people also used it to make weapons. In the 18th century, it was grown to provide wood for boxes and",
        "choices": [],
        "answer": "oak"
       },
       {
        "qNo": 25,
-       "prompt": "25 ___Due to its strength, elm was often used for mining equipment and the Cutty Sark's",
+       "prompt": "25 ___ Due to its strength, elm was often used for mining equipment and the Cutty Sark's",
        "choices": [],
        "answer": "flooring"
       },
       {
        "qNo": 26,
-       "prompt": "26 ___was also constructed from elm.",
+       "prompt": "26 ___ was also constructed from elm.",
        "choices": [],
        "answer": "keel"
       }
@@ -1203,7 +1203,7 @@
       },
       {
        "qNo": 2,
-       "prompt": "• how much 2 ___the caring involves • what types of tasks are involved, e.g. - help with dressing",
+       "prompt": "• how much 2 ___ the caring involves • what types of tasks are involved, e.g. - help with dressing",
        "choices": [],
        "answer": "time"
       },
@@ -1227,7 +1227,7 @@
       },
       {
        "qNo": 6,
-       "prompt": "-6 ___her",
+       "prompt": "-6 ___ her",
        "choices": [],
        "answer": "lifting"
       },
@@ -1530,25 +1530,25 @@
       },
       {
        "qNo": 33,
-       "prompt": "- Famous 33 ___are influential. Marketing campaigns The avocado:",
+       "prompt": "- Famous 33 ___ are influential. Marketing campaigns The avocado:",
        "choices": [],
        "answer": "chefs/cooks"
       },
       {
        "qNo": 34,
-       "prompt": "-34 ___were invited to visit growers in South Africa.",
+       "prompt": "-34 ___ were invited to visit growers in South Africa.",
        "choices": [],
        "answer": "journalists/reporters"
       },
       {
        "qNo": 35,
-       "prompt": "- Advertising focused on its 35 ___benefits. Oat milk: - A Swedish brand's media campaign received publicity by upsetting competitors.",
+       "prompt": "- Advertising focused on its 35 ___ benefits. Oat milk: - A Swedish brand's media campaign received publicity by upsetting competitors.",
        "choices": [],
        "answer": "health"
       },
       {
        "qNo": 36,
-       "prompt": "- Promotion in the USA through 36 ___shops reduced the need for advertising.",
+       "prompt": "- Promotion in the USA through 36 ___ shops reduced the need for advertising.",
        "choices": [],
        "answer": "coffee"
       },
@@ -1560,7 +1560,7 @@
       },
       {
        "qNo": 38,
-       "prompt": "- has helped strengthen the 38 ___of Norwegian seafood. Ethical concerns • Quinoa:",
+       "prompt": "- has helped strengthen the 38 ___ of Norwegian seafood. Ethical concerns • Quinoa:",
        "choices": [],
        "answer": "reputation"
       },
@@ -1598,7 +1598,7 @@
       },
       {
        "qNo": 3,
-       "prompt": "• sense vibrations in the water by means of 3 ___on their skin Feeding",
+       "prompt": "• sense vibrations in the water by means of 3 ___ on their skin Feeding",
        "choices": [],
        "answer": "hair"
       },
@@ -1616,7 +1616,7 @@
       },
       {
        "qNo": 6,
-       "prompt": "• may regulate the 6 ___of their bodies by using muscles of diaphragm to store air internally",
+       "prompt": "• may regulate the 6 ___ of their bodies by using muscles of diaphragm to store air internally",
        "choices": [],
        "answer": "buoyancy"
       }
@@ -2094,66 +2094,66 @@
     {
      "section": "Listening Section 1",
      "passage_title": null,
-     "instructions": "Complete the table below. Write ONE WORD AND/OR A NUMBER for each answer. Furniture Rental Companies Name of company Information about costs Additional notes",
+     "instructions": "Complete the table below. Write ONE WORD AND/OR A NUMBER for each answer. Furniture Rental Companies",
      "word_limit": "ONE WORD AND/OR A NUMBER",
      "questions": [
       {
        "qNo": 1,
-       "prompt": "1 ___ per room per month Delivers in 1-2 days Special offer:",
+       "prompt": "Peak Rentals - Information about costs: Prices range from $105 to $ 1 ___ per room per month",
        "choices": [],
        "answer": "239"
       },
       {
        "qNo": 2,
-       "prompt": "Peak Rentals Prices range from $105 to $ The furniture is very 2 ___",
+       "prompt": "Peak Rentals - Additional notes: The furniture is very 2 ___ Delivers in 1-2 days Special offer: Free … with every living room set",
        "choices": [],
        "answer": "modern"
       },
       {
        "qNo": 3,
-       "prompt": "Free 3 ___ with every living room set",
+       "prompt": "Peak Rentals - Additional notes: The furniture is very … Delivers in 1-2 days Special offer: Free 3 ___ with every living room set",
        "choices": [],
        "answer": "lamp"
       },
       {
        "qNo": 4,
-       "prompt": "4 ___and Mid-range prices Also offers a cleaning service Oliver",
+       "prompt": "Name of company: 4 ___ and Oliver",
        "choices": [],
        "answer": "Aaron"
       },
       {
        "qNo": 5,
-       "prompt": "12% monthly fee for 5 ___",
+       "prompt": "… and Oliver - Information about costs: Mid-range prices 12% monthly fee for 5 ___",
        "choices": [],
        "answer": "damage"
       },
       {
        "qNo": 6,
-       "prompt": "furniture and 6 ___items Minimum contract length: six months",
+       "prompt": "Larch Furniture - Information about costs: Offers cheapest prices for renting furniture and 6 ___ items",
        "choices": [],
        "answer": "electronic"
       },
       {
        "qNo": 7,
-       "prompt": "Larch Furniture Offers cheapest prices for renting Must have own 7 ___",
+       "prompt": "Larch Furniture - Additional notes: Must have own 7 ___ Minimum contract length: six months",
        "choices": [],
        "answer": "insurance"
       },
       {
        "qNo": 8,
-       "prompt": "8 ___Rentals See the 9 ___ for the most 10 ___ are allowed",
+       "prompt": "Name of company: 8 ___ Rentals",
        "choices": [],
        "answer": "space"
       },
       {
        "qNo": 9,
-       "prompt": "8 ___Rentals See the 9 ___ for the most 10 ___ are allowed",
+       "prompt": "… Rentals - Information about costs: See the 9 ___ for the most up-to-date prices",
        "choices": [],
        "answer": "app"
       },
       {
        "qNo": 10,
-       "prompt": "8 ___Rentals See the 9 ___ for the most 10 ___ are allowed up-to-date prices within 7 days of delivery",
+       "prompt": "… Rentals - Additional notes: 10 ___ are allowed within 7 days of delivery",
        "choices": [],
        "answer": "exchanges"
       }
@@ -2447,19 +2447,19 @@
       },
       {
        "qNo": 32,
-       "prompt": "with 32 ___problems. Examples of inclusive design",
+       "prompt": "with 32 ___ problems. Examples of inclusive design",
        "choices": [],
        "answer": "cognitive"
       },
       {
        "qNo": 33,
-       "prompt": "• 33 ___which are adjustable, avoiding back or neck problems",
+       "prompt": "• 33 ___ which are adjustable, avoiding back or neck problems",
        "choices": [],
        "answer": "desks"
       },
       {
        "qNo": 34,
-       "prompt": "• 34 ___in public toilets which are easier to use To assist the elderly:",
+       "prompt": "• 34 ___ in public toilets which are easier to use To assist the elderly:",
        "choices": [],
        "answer": "taps"
       },
@@ -2477,7 +2477,7 @@
       },
       {
        "qNo": 37,
-       "prompt": "• Seatbelts are especially problematic for 37 ___women.",
+       "prompt": "• Seatbelts are especially problematic for 37 ___ women.",
        "choices": [],
        "answer": "pregnant"
       },
@@ -2489,13 +2489,13 @@
       },
       {
        "qNo": 39,
-       "prompt": "• PPE for female 39 ___officers dealing with emergencies is the worst. Comfort in the workplace",
+       "prompt": "• PPE for female 39 ___ officers dealing with emergencies is the worst. Comfort in the workplace",
        "choices": [],
        "answer": "police"
       },
       {
        "qNo": 40,
-       "prompt": "• The 40 ___in offices is often too low for women.",
+       "prompt": "• The 40 ___ in offices is often too low for women.",
        "choices": [],
        "answer": "temperature"
       }
@@ -2515,19 +2515,19 @@
       },
       {
        "qNo": 2,
-       "prompt": "• 2 ___was kept cool by ice during transportation in specially adapted trains. 1880, Australia",
+       "prompt": "• 2 ___ was kept cool by ice during transportation in specially adapted trains. 1880, Australia",
        "choices": [],
        "answer": "butter"
       },
       {
        "qNo": 3,
-       "prompt": "• Two kinds of 3 ___were the first frozen food shipped to England. 1917 onwards, USA Clarence Birdseye introduced innovations including:",
+       "prompt": "• Two kinds of 3 ___ were the first frozen food shipped to England. 1917 onwards, USA Clarence Birdseye introduced innovations including:",
        "choices": [],
        "answer": "meat"
       },
       {
        "qNo": 4,
-       "prompt": "• quick-freezing methods, so that 4 ___did not spoil the food.",
+       "prompt": "• quick-freezing methods, so that 4 ___ did not spoil the food.",
        "choices": [],
        "answer": "crystals"
       },
@@ -2603,7 +2603,7 @@
      "questions": [
       {
        "qNo": 14,
-       "prompt": "Paragraph A………..",
+       "prompt": "Paragraph A",
        "choices": [
         "A. Conservationists have put the final touches to a giant artificial reef they have been"
        ],
@@ -2611,7 +2611,7 @@
       },
       {
        "qNo": 15,
-       "prompt": "Paragraph B…………",
+       "prompt": "Paragraph B",
        "choices": [
         "A. Conservationists have put the final touches to a giant artificial reef they have been"
        ],
@@ -2619,7 +2619,7 @@
       },
       {
        "qNo": 16,
-       "prompt": "Paragraph C…………",
+       "prompt": "Paragraph C",
        "choices": [
         "A. Conservationists have put the final touches to a giant artificial reef they have been"
        ],
@@ -2627,7 +2627,7 @@
       },
       {
        "qNo": 17,
-       "prompt": "Paragraph D………..",
+       "prompt": "Paragraph D",
        "choices": [
         "A. Conservationists have put the final touches to a giant artificial reef they have been"
        ],
@@ -2635,7 +2635,7 @@
       },
       {
        "qNo": 18,
-       "prompt": "Paragraph E…………",
+       "prompt": "Paragraph E",
        "choices": [
         "A. Conservationists have put the final touches to a giant artificial reef they have been"
        ],
@@ -2643,7 +2643,7 @@
       },
       {
        "qNo": 19,
-       "prompt": "Paragraph F………… Can the planet's coral reefs be saved?",
+       "prompt": "Paragraph F",
        "choices": [
         "A. Conservationists have put the final touches to a giant artificial reef they have been"
        ],
@@ -2735,7 +2735,7 @@
       },
       {
        "qNo": 26,
-       "prompt": "remove the 26 ___from coral.",
+       "prompt": "remove the 26 ___ from coral.",
        "choices": [],
        "answer": "colour"
       }
@@ -3104,7 +3104,7 @@
      "questions": [
       {
        "qNo": 1,
-       "prompt": "• 1 ___Hotel on George Street",
+       "prompt": "• 1 ___ Hotel on George Street",
        "choices": [],
        "answer": "Kings"
       },
@@ -3116,13 +3116,13 @@
       },
       {
        "qNo": 3,
-       "prompt": "• a 3 ___tour of the city centre (starts in Carlton Square)",
+       "prompt": "• a 3 ___ tour of the city centre (starts in Carlton Square)",
        "choices": [],
        "answer": "walking"
       },
       {
        "qNo": 4,
-       "prompt": "• a trip by 4 ___to the old fort Science Museum",
+       "prompt": "• a trip by 4 ___ to the old fort Science Museum",
        "choices": [],
        "answer": "boat"
       },
@@ -3146,7 +3146,7 @@
       },
       {
        "qNo": 8,
-       "prompt": "• need to have lunch before 8 ___p.m. Theatre tickets",
+       "prompt": "• need to have lunch before 8 ___ p.m. Theatre tickets",
        "choices": [],
        "answer": "2,30"
       },
@@ -3483,7 +3483,7 @@
      "questions": [
       {
        "qNo": 31,
-       "prompt": "• They destroy 31 ___and other rodents.",
+       "prompt": "• They destroy 31 ___ and other rodents.",
        "choices": [],
        "answer": "rats"
       },
@@ -3501,7 +3501,7 @@
       },
       {
        "qNo": 34,
-       "prompt": "• By 34 ___when they are hunting or sleeping • by electrocution from contact with power lines, especially at times,",
+       "prompt": "• By 34 ___ when they are hunting or sleeping • by electrocution from contact with power lines, especially at times,",
        "choices": [],
        "answer": "traffic"
       },
@@ -3513,13 +3513,13 @@
       },
       {
        "qNo": 36,
-       "prompt": "• Local farmers may illegally shoot them or 36 ___them. Ways of protecting chickens from birds of prey • clearing away vegetation from the area (unhelpful)",
+       "prompt": "• Local farmers may illegally shoot them or 36 ___ them. Ways of protecting chickens from birds of prey • clearing away vegetation from the area (unhelpful)",
        "choices": [],
        "answer": "poison"
       },
       {
        "qNo": 37,
-       "prompt": "• providing a 37 ___for chickens (expensive) • frightening birds of prey by",
+       "prompt": "• providing a 37 ___ for chickens (expensive) • frightening birds of prey by",
        "choices": [],
        "answer": "building"
       },
@@ -3537,7 +3537,7 @@
       },
       {
        "qNo": 40,
-       "prompt": "• a 40 ___of methods is usually most effective.",
+       "prompt": "• a 40 ___ of methods is usually most effective.",
        "choices": [],
        "answer": "combination"
       }
@@ -3551,7 +3551,7 @@
      "questions": [
       {
        "qNo": 1,
-       "prompt": "• studied art, then worked as a 1 ___in various places in the USA",
+       "prompt": "• studied art, then worked as a 1 ___ in various places in the USA",
        "choices": [],
        "answer": "teacher"
       },
@@ -3701,7 +3701,7 @@
       },
       {
        "qNo": 22,
-       "prompt": "content. A project in LA has increased the number of 22 ___on the city's streets.",
+       "prompt": "content. A project in LA has increased the number of 22 ___ on the city's streets.",
        "choices": [],
        "answer": "trees"
       }
