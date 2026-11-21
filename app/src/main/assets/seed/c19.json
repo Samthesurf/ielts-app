@@ -38,7 +38,7 @@
       "becomes thinner and thinner, even these slight changes become more and more important. As a",
       "result, players and their teams are becoming increasingly creative with the modifications to their",
       "rackets as they look to maximise their competitive advantage.",
-      ": +",
+      ":",
       "Reading",
       "Racket modifications mainly date back to the 1970s, when the amateur German tennis player",
       "Werner Fischer started playing with the so-called spaghetti-strung racket. It created a string bed",
@@ -241,12 +241,20 @@
     {
      "section": "Listening Section 1",
      "passage_title": null,
-     "instructions": "Complete the notes below. Write ONE WORD AND/OR A NUMBER for each answer. Hinchingbrooke Country Park The park Area: 4 scacnaanvnsannincnn RECTORS Habitats: wetland, grassland and woodland Wetland: lakes, PONdS AN 2 2 -ncssessssssssesnssseeeernsseeeren Wildlife includes birds, insects and animals Subjects studied in educational visits include",
+     "instructions": "Complete the notes below. Write ONE WORD AND/OR A NUMBER for each answer. Hinchingbrooke Country Park The park",
      "word_limit": "ONE WORD AND/OR A NUMBER",
      "questions": [
       {
+       "qNo": 2,
+       "prompt": "Wetland: lakes, PONdS AN 2 2 ___ Wildlife includes birds, insects and animals Subjects studied in educational visits include",
+       "choices": [],
+       "answer": "stream",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify"
+      },
+      {
        "qNo": 4,
-       "prompt": "Geography: includes learning to USE a 4 ___ ANA COMPASS History: changes in land use",
+       "prompt": "Area: 4 ___ RECTORS Habitats: wetland, grassland and woodland",
        "choices": [],
        "answer": "map",
        "needs_review": false,
@@ -262,19 +270,35 @@
       },
       {
        "qNo": 6,
-       "prompt": "Music: Children Make 6 ___ With natural materials, and experiment with rhythm and speed. Benefits of outdoor educational visits They give children a feeling Of 7 o.com. that they may not have elsewhere. Children learn NeW B ues aNd gain self-confidence. Practical issues",
+       "prompt": "Music: Children Make 6 ___ With natural materials, and experiment with rhythm and speed. Benefits of outdoor educational visits",
        "choices": [],
        "answer": "sounds",
        "needs_review": true,
        "review_note": "key: ocr cleanup applied to key; verify"
       },
       {
+       "qNo": 7,
+       "prompt": "They give children a feeling Of 7 ___ that they may not have elsewhere. Children learn NeW B ues aNd gain self-confidence. Practical issues",
+       "choices": [],
+       "answer": "freedom",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify"
+      },
+      {
        "qNo": 9,
-       "prompt": "Cost:per child: 9 ___ Adults; suct as 10 sccissasscnnananeony: WES Listening",
+       "prompt": "Cost:per child: 9 ___",
        "choices": [],
        "answer": "4.95",
        "needs_review": false,
        "review_note": ""
+      },
+      {
+       "qNo": 10,
+       "prompt": "Adults; suct as 10 ___ WES Listening",
+       "choices": [],
+       "answer": "leaders",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify"
       }
      ]
     },
@@ -341,7 +365,7 @@
     {
      "section": "Listening Section 2",
      "passage_title": null,
-     "instructions": "i _ i 1 i @Oldstables ] |i B (e (e i. it , \" Label the map below. Write the correct letter, A-H, next to Questions 16—20. Farley House N (e (e BO) wet. E",
+     "instructions": "i _ i 1 i @Oldstables ] |i B (e (e i. it , 1! im . beescorsereassane | Car park Label the map below. Write the correct letter, A-H, next to Questions 16—20. Farley House N (e (e BO) wet. E",
      "word_limit": "",
      "questions": [
       {
@@ -519,108 +543,48 @@
     {
      "section": "Listening Section 4",
      "passage_title": null,
-     "instructions": "Complete the notes below.",
-     "word_limit": "",
+     "instructions": "was used to identify where stones were located — carbon dating later proved the site was Neolithic. Neolithic farmers e —__ Neolithic innovations include: — cooking indoors — pots used for storage ANd tO MAKE 36 woes e Each field at Céide was large enough to SUPPOFt A DIG 37 Laces e __ The fields were probably used to restrict the grazing of animals — no Reasons for the decline in farming Complete the notes below. Write ONE WORD ONLY for each answer. Céide Fields e —animportant Neolithic archaeological site in the northwest of Ireland e Inthe 1930s, a local teacher realised that stones beneath the bog surface WEIS GHGS BA icsisssscscscscnscencsrniscacccssssse investigation of the site:",
+     "word_limit": "ONE WORD ONLY",
      "questions": [
       {
-       "qNo": 31,
-       "prompt": "Write ONE WORD ONLY for each answer. Céide Fields e —animportant Neolithic archaeological site in the northwest of Ireland e Inthe 1930s, a local teacher realised that stones beneath the bog surface WEIS GHGS BA icsisssscscscscnscencsrniscacccssssse ' investigation of the site: — atraditional method used by local people to dig fOr 33 woccccccssscsssssssssesessseen was used to identify where stones were located — carbon dating later proved the site was Neolithic. e Items are well preserved in the bog because Of a lack Of 34 oo cecssssseesssssssssseennee « Neolithic farmers e —__ Neolithic innovations include: — cooking indoors — pots used for storage ANd tO MAKE 36 woes e Each field at Céide was large enough to SUPPOFt A DIG 37 Laces e __ The fields were probably used to restrict the grazing of animals — no evidence of structures to HOUSE THEM CUTING 38 un. « Reasons for the decline in farming @ — EN Inerease i 4D isisiscisississcssssssssinssssssnncers",
-       "choices": [
-        "D. iscovery"
-       ],
-       "answer": "H",
-       "needs_review": true,
-       "review_note": "key: number missing in OCR; assigned by sequence; prompt: mojibake characters in prompt"
-      },
-      {
-       "qNo": 32,
-       "prompt": "Write ONE WORD ONLY for each answer. Céide Fields e —animportant Neolithic archaeological site in the northwest of Ireland e Inthe 1930s, a local teacher realised that stones beneath the bog surface WEIS GHGS BA icsisssscscscscnscencsrniscacccssssse ' investigation of the site: — atraditional method used by local people to dig fOr 33 woccccccssscsssssssssesessseen was used to identify where stones were located — carbon dating later proved the site was Neolithic. e Items are well preserved in the bog because Of a lack Of 34 oo cecssssseesssssssssseennee « Neolithic farmers e —__ Neolithic innovations include: — cooking indoors — pots used for storage ANd tO MAKE 36 woes e Each field at Céide was large enough to SUPPOFt A DIG 37 Laces e __ The fields were probably used to restrict the grazing of animals — no evidence of structures to HOUSE THEM CUTING 38 un. « Reasons for the decline in farming @ — EN Inerease i 4D isisiscisississcssssssssinssssssnncers",
-       "choices": [
-        "D. iscovery"
-       ],
-       "answer": "walls",
-       "needs_review": true,
-       "review_note": "key: number missing in OCR; assigned by sequence; prompt: mojibake characters in prompt"
-      },
-      {
        "qNo": 33,
-       "prompt": "Write ONE WORD ONLY for each answer. Céide Fields e —animportant Neolithic archaeological site in the northwest of Ireland e Inthe 1930s, a local teacher realised that stones beneath the bog surface WEIS GHGS BA icsisssscscscscnscencsrniscacccssssse ' investigation of the site: — atraditional method used by local people to dig fOr 33 woccccccssscsssssssssesessseen was used to identify where stones were located — carbon dating later proved the site was Neolithic. e Items are well preserved in the bog because Of a lack Of 34 oo cecssssseesssssssssseennee « Neolithic farmers e —__ Neolithic innovations include: — cooking indoors — pots used for storage ANd tO MAKE 36 woes e Each field at Céide was large enough to SUPPOFt A DIG 37 Laces e __ The fields were probably used to restrict the grazing of animals — no evidence of structures to HOUSE THEM CUTING 38 un. « Reasons for the decline in farming @ — EN Inerease i 4D isisiscisississcssssssssinssssssnncers",
+       "prompt": "— atraditional method used by local people to dig fOr 33 ___",
        "choices": [
         "D. iscovery"
        ],
        "answer": "son",
        "needs_review": true,
-       "review_note": "key: number missing in OCR; assigned by sequence; prompt: mojibake characters in prompt"
+       "review_note": "key: number missing in OCR; assigned by sequence"
       },
       {
        "qNo": 34,
-       "prompt": "Write ONE WORD ONLY for each answer. Céide Fields e —animportant Neolithic archaeological site in the northwest of Ireland e Inthe 1930s, a local teacher realised that stones beneath the bog surface WEIS GHGS BA icsisssscscscscnscencsrniscacccssssse ' investigation of the site: — atraditional method used by local people to dig fOr 33 woccccccssscsssssssssesessseen was used to identify where stones were located — carbon dating later proved the site was Neolithic. e Items are well preserved in the bog because Of a lack Of 34 oo cecssssseesssssssssseennee « Neolithic farmers e —__ Neolithic innovations include: — cooking indoors — pots used for storage ANd tO MAKE 36 woes e Each field at Céide was large enough to SUPPOFt A DIG 37 Laces e __ The fields were probably used to restrict the grazing of animals — no evidence of structures to HOUSE THEM CUTING 38 un. « Reasons for the decline in farming @ — EN Inerease i 4D isisiscisississcssssssssinssssssnncers",
+       "prompt": "e Items are well preserved in the bog because Of a lack Of 34 ___",
        "choices": [
         "D. iscovery"
        ],
        "answer": "fuel",
        "needs_review": true,
-       "review_note": "key: number missing in OCR; assigned by sequence; prompt: mojibake characters in prompt"
-      },
-      {
-       "qNo": 35,
-       "prompt": "Write ONE WORD ONLY for each answer. Céide Fields e —animportant Neolithic archaeological site in the northwest of Ireland e Inthe 1930s, a local teacher realised that stones beneath the bog surface WEIS GHGS BA icsisssscscscscnscencsrniscacccssssse ' investigation of the site: — atraditional method used by local people to dig fOr 33 woccccccssscsssssssssesessseen was used to identify where stones were located — carbon dating later proved the site was Neolithic. e Items are well preserved in the bog because Of a lack Of 34 oo cecssssseesssssssssseennee « Neolithic farmers e —__ Neolithic innovations include: — cooking indoors — pots used for storage ANd tO MAKE 36 woes e Each field at Céide was large enough to SUPPOFt A DIG 37 Laces e __ The fields were probably used to restrict the grazing of animals — no evidence of structures to HOUSE THEM CUTING 38 un. « Reasons for the decline in farming @ — EN Inerease i 4D isisiscisississcssssssssinssssssnncers",
-       "choices": [
-        "D. iscovery"
-       ],
-       "answer": "oxygen",
-       "needs_review": true,
-       "review_note": "key: number missing in OCR; assigned by sequence; prompt: mojibake characters in prompt"
-      },
-      {
-       "qNo": 36,
-       "prompt": "Write ONE WORD ONLY for each answer. Céide Fields e —animportant Neolithic archaeological site in the northwest of Ireland e Inthe 1930s, a local teacher realised that stones beneath the bog surface WEIS GHGS BA icsisssscscscscnscencsrniscacccssssse ' investigation of the site: — atraditional method used by local people to dig fOr 33 woccccccssscsssssssssesessseen was used to identify where stones were located — carbon dating later proved the site was Neolithic. e Items are well preserved in the bog because Of a lack Of 34 oo cecssssseesssssssssseennee « Neolithic farmers e —__ Neolithic innovations include: — cooking indoors — pots used for storage ANd tO MAKE 36 woes e Each field at Céide was large enough to SUPPOFt A DIG 37 Laces e __ The fields were probably used to restrict the grazing of animals — no evidence of structures to HOUSE THEM CUTING 38 un. « Reasons for the decline in farming @ — EN Inerease i 4D isisiscisississcssssssssinssssssnncers",
-       "choices": [
-        "D. iscovery"
-       ],
-       "answer": "rectangular",
-       "needs_review": true,
-       "review_note": "key: number missing in OCR; assigned by sequence; prompt: mojibake characters in prompt"
-      },
-      {
-       "qNo": 37,
-       "prompt": "Write ONE WORD ONLY for each answer. Céide Fields e —animportant Neolithic archaeological site in the northwest of Ireland e Inthe 1930s, a local teacher realised that stones beneath the bog surface WEIS GHGS BA icsisssscscscscnscencsrniscacccssssse ' investigation of the site: — atraditional method used by local people to dig fOr 33 woccccccssscsssssssssesessseen was used to identify where stones were located — carbon dating later proved the site was Neolithic. e Items are well preserved in the bog because Of a lack Of 34 oo cecssssseesssssssssseennee « Neolithic farmers e —__ Neolithic innovations include: — cooking indoors — pots used for storage ANd tO MAKE 36 woes e Each field at Céide was large enough to SUPPOFt A DIG 37 Laces e __ The fields were probably used to restrict the grazing of animals — no evidence of structures to HOUSE THEM CUTING 38 un. « Reasons for the decline in farming @ — EN Inerease i 4D isisiscisississcssssssssinssssssnncers",
-       "choices": [
-        "D. iscovery"
-       ],
-       "answer": "lamps",
-       "needs_review": true,
-       "review_note": "key: number missing in OCR; assigned by sequence; prompt: mojibake characters in prompt"
+       "review_note": "key: number missing in OCR; assigned by sequence"
       },
       {
        "qNo": 38,
-       "prompt": "Write ONE WORD ONLY for each answer. Céide Fields e —animportant Neolithic archaeological site in the northwest of Ireland e Inthe 1930s, a local teacher realised that stones beneath the bog surface WEIS GHGS BA icsisssscscscscnscencsrniscacccssssse ' investigation of the site: — atraditional method used by local people to dig fOr 33 woccccccssscsssssssssesessseen was used to identify where stones were located — carbon dating later proved the site was Neolithic. e Items are well preserved in the bog because Of a lack Of 34 oo cecssssseesssssssssseennee « Neolithic farmers e —__ Neolithic innovations include: — cooking indoors — pots used for storage ANd tO MAKE 36 woes e Each field at Céide was large enough to SUPPOFt A DIG 37 Laces e __ The fields were probably used to restrict the grazing of animals — no evidence of structures to HOUSE THEM CUTING 38 un. « Reasons for the decline in farming @ — EN Inerease i 4D isisiscisississcssssssssinssssssnncers",
+       "prompt": "evidence of structures to HOUSE THEM CUTING 38 ___",
        "choices": [
         "D. iscovery"
        ],
        "answer": "family",
        "needs_review": true,
-       "review_note": "key: number missing in OCR; assigned by sequence; prompt: mojibake characters in prompt"
-      },
-      {
-       "qNo": 39,
-       "prompt": "Write ONE WORD ONLY for each answer. Céide Fields e —animportant Neolithic archaeological site in the northwest of Ireland e Inthe 1930s, a local teacher realised that stones beneath the bog surface WEIS GHGS BA icsisssscscscscnscencsrniscacccssssse ' investigation of the site: — atraditional method used by local people to dig fOr 33 woccccccssscsssssssssesessseen was used to identify where stones were located — carbon dating later proved the site was Neolithic. e Items are well preserved in the bog because Of a lack Of 34 oo cecssssseesssssssssseennee « Neolithic farmers e —__ Neolithic innovations include: — cooking indoors — pots used for storage ANd tO MAKE 36 woes e Each field at Céide was large enough to SUPPOFt A DIG 37 Laces e __ The fields were probably used to restrict the grazing of animals — no evidence of structures to HOUSE THEM CUTING 38 un. « Reasons for the decline in farming @ — EN Inerease i 4D isisiscisississcssssssssinssssssnncers",
-       "choices": [
-        "D. iscovery"
-       ],
-       "answer": "winter",
-       "needs_review": true,
-       "review_note": "key: number missing in OCR; assigned by sequence; prompt: mojibake characters in prompt"
+       "review_note": "key: number missing in OCR; assigned by sequence"
       },
       {
        "qNo": 40,
-       "prompt": "Write ONE WORD ONLY for each answer. Céide Fields e —animportant Neolithic archaeological site in the northwest of Ireland e Inthe 1930s, a local teacher realised that stones beneath the bog surface WEIS GHGS BA icsisssscscscscnscencsrniscacccssssse ' investigation of the site: — atraditional method used by local people to dig fOr 33 woccccccssscsssssssssesessseen was used to identify where stones were located — carbon dating later proved the site was Neolithic. e Items are well preserved in the bog because Of a lack Of 34 oo cecssssseesssssssssseennee « Neolithic farmers e —__ Neolithic innovations include: — cooking indoors — pots used for storage ANd tO MAKE 36 woes e Each field at Céide was large enough to SUPPOFt A DIG 37 Laces e __ The fields were probably used to restrict the grazing of animals — no evidence of structures to HOUSE THEM CUTING 38 un. « Reasons for the decline in farming @ — EN Inerease i 4D isisiscisississcssssssssinssssssnncers",
+       "prompt": "@ — EN Inerease i 40 ___",
        "choices": [
         "D. iscovery"
        ],
        "answer": "soil",
        "needs_review": true,
-       "review_note": "key: number missing in OCR; assigned by sequence; prompt: mojibake characters in prompt"
+       "review_note": "key: number missing in OCR; assigned by sequence"
       }
      ]
     },
@@ -685,6 +649,54 @@
        "answer": "TRUE",
        "needs_review": false,
        "review_note": ""
+      }
+     ]
+    },
+    {
+     "section": "Reading Passage 1",
+     "passage_title": "How tennis rackets have changed",
+     "instructions": "Complete the notes below. Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 8—13 on your answer sheet. The tennis racket and how it has changed",
+     "word_limit": "ONE WORD ONLY",
+     "questions": [
+      {
+       "qNo": 8,
+       "prompt": "e Mike and Bob Bryan made changes to the types Of 8 ___ USED ON their racket frames. e Players were not allowed to use the spaghetti-strung racket because of the AMOUNE Of Y ...........ssccseseeennen It Created. e Changes to rackets can be regarded as being as important as players’ diets or",
+       "choices": [],
+       "answer": "paint",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify; prompt: repeated-char OCR run '...........'"
+      },
+      {
+       "qNo": 10,
+       "prompt": "he 10 ___ NOY GO:",
+       "choices": [],
+       "answer": "training",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify"
+      },
+      {
+       "qNo": 11,
+       "prompt": "e = All rackets used to have natural strings Made frOM the 11 ___ of animals.",
+       "choices": [],
+       "answer": "intestines gut",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify"
+      },
+      {
+       "qNo": 12,
+       "prompt": "e Pete Sampras had metal 12 ___ PUt into the frames of his rackets.",
+       "choices": [],
+       "answer": "weights",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify"
+      },
+      {
+       "qNo": 13,
+       "prompt": "e Gongalo Oliveira changed the 13 ___ ON His racket handles.",
+       "choices": [],
+       "answer": "grips",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify"
       }
      ]
     },
@@ -1205,11 +1217,19 @@
       },
       {
        "qNo": 4,
-       "prompt": "ooooccssssstsessnennnnns OEet First floor, Room T347 Time: Thursday MOPning at 5 wn... csssssseeusesseenen Recommended website: “The Perfect 6 veces” +f :",
+       "prompt": "ooooccssssstsessnennnnns OEet First floor, Room T347",
        "choices": [],
        "answer": "New",
        "needs_review": true,
-       "review_note": "prompt: mojibake characters in prompt"
+       "review_note": "prompt: repeated-char OCR run 'oooo'"
+      },
+      {
+       "qNo": 5,
+       "prompt": "Time: Thursday MOPning at 5 ___ csssssseeusesseenen Recommended website: “The Perfect 6 veces +f :",
+       "choices": [],
+       "answer": "11/eleven (am)",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify; prompt: mojibake characters in prompt"
       }
      ]
     },
@@ -1220,18 +1240,18 @@
      "word_limit": "ONE WORD ONLY",
      "questions": [
       {
-       "qNo": 5,
-       "prompt": "minutes tuning guitars 7",
+       "qNo": 7,
+       "prompt": "5 minutes tuning guitars 7 ___ keeping time while the teacher",
        "choices": [],
-       "answer": "11/eleven (am)",
-       "needs_review": true,
-       "review_note": "key: ocr cleanup applied to key; verify"
+       "answer": "ear",
+       "needs_review": false,
+       "review_note": ""
       },
       {
-       "qNo": 10,
-       "prompt": "minutes strumming chords using our thumbs is 8",
+       "qNo": 8,
+       "prompt": "10 minutes strumming chords using our thumbs is 8 ___ often listening to a",
        "choices": [],
-       "answer": "alone",
+       "answer": "clapping",
        "needs_review": true,
        "review_note": "key: ocr cleanup applied to key; verify"
       }
@@ -1480,7 +1500,7 @@
     {
      "section": "Listening Section 4",
      "passage_title": null,
-     "instructions": "e —_ often found at the bottom of a lake or on plants e very resilient and can exist in very OW OF NIGN 36 wu... ccecsesssseeessseeeeen e —_ In dry conditions, they roll into a ball called a ‘tun’. e _ They stay alive with a much lower metabolism than usual. e Research is underway to find out how many days they can stay de ° consume liquids, €.g., those FOUN IN MOSS OF 39 occurs e may eat other tardigrades Conservation status e = They are not Considered tO DE 40 i eccccsssssssssssesenee « Complete the notes below. Write ONE WORD ONLY for each answer. Tardigrades ° more than 1,000 species, 0.05—1.2 millimetres long",
+     "instructions": "e —_ often found at the bottom of a lake or on plants e —_ In dry conditions, they roll into a ball called a ‘tun’. e _ They stay alive with a much lower metabolism than usual. e Research is underway to find out how many days they can stay de ° consume liquids, €.g., those FOUN IN MOSS OF 39 occurs e may eat other tardigrades Conservation status Complete the notes below. Write ONE WORD ONLY for each answer. Tardigrades ° more than 1,000 species, 0.05—1.2 millimetres long",
      "word_limit": "ONE WORD ONLY",
      "questions": [
       {
@@ -1505,11 +1525,67 @@
       },
       {
        "qNo": 35,
-       "prompt": "e mouth shaped like a 35 ___ With teeth called stylets",
+       "prompt": "e mouth shaped like a 35 ___ csossssee With teeth called stylets",
        "choices": [
         "H. abitat"
        ],
        "answer": "tube",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify; prompt: repeated-char OCR run 'ssss'"
+      },
+      {
+       "qNo": 36,
+       "prompt": "e very resilient and can exist in very OW OF NIGN 36 ___ ccecsesssseeessseeeeen",
+       "choices": [
+        "C. ryptobiosis"
+       ],
+       "answer": "temperatures",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify; prompt: repeated-char OCR run 'ssss'"
+      },
+      {
+       "qNo": 40,
+       "prompt": "e = They are not Considered tO DE 40 ___",
+       "choices": [
+        "F. eeding"
+       ],
+       "answer": "endangered",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify"
+      }
+     ]
+    },
+    {
+     "section": "Reading Passage 1",
+     "passage_title": "The Industrial Revolution in Britain",
+     "instructions": "e Cooke and Wheatstone patented the first telegraphy system. e The telegraphy system was used to prevent locomotives colliding. Urbanisation e Small towns turned into cities very quickly. 42 op Complete the notes below. Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 1—7 on your answer sheet. Britain’s Industrial Revolution Steam power e | Newcomen’s steam engine was used in mines to remove water. e In Watt and Boulton’s steam engine, the MOveMeEnt OF the 1 ounces was linked to a gear system.",
+     "word_limit": "ONE WORD ONLY",
+     "questions": [
+      {
+       "qNo": 2,
+       "prompt": "e =A greater SUPPLY Of 2 ___ Was required to power steam engines. Textile industry e Before the Industrial Revolution, spinners and weavers worked at home and in",
+       "choices": [
+        "C. ommunications"
+       ],
+       "answer": "coal",
+       "needs_review": false,
+       "review_note": ""
+      },
+      {
+       "qNo": 4,
+       "prompt": "e Not AS MUCH 4 ___ Was needed to produce cloth once the spinning jenny and power loom were invented. lron industry e Smelting of iron ore with coke resulted in material that was better e Demand for iron increased with the growth Of the 6 oon",
+       "choices": [
+        "C. ommunications"
+       ],
+       "answer": "labour labor",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify"
+      },
+      {
+       "qNo": 7,
+       "prompt": "e The new cities were dirty, crowded and lacked SUPICIENE 7 ___ Reading",
+       "choices": [],
+       "answer": "— sanitation",
        "needs_review": true,
        "review_note": "key: ocr cleanup applied to key; verify"
       }
@@ -1860,54 +1936,6 @@
        "review_note": ""
       }
      ]
-    },
-    {
-     "section": "Listening Section 1",
-     "passage_title": null,
-     "instructions": "Complete the notes below. Write ONE WORD ANDIOR A NUMBER for each answer. Local food shops Where to go",
-     "word_limit": "",
-     "questions": [
-      {
-       "qNo": 6,
-       "prompt": "° take 8 6 ___ Minibus, number 289 op 55",
-       "choices": [],
-       "answer": "instrument",
-       "needs_review": true,
-       "review_note": "key: ocr cleanup applied to key; verify; prompt: mojibake characters in prompt"
-      }
-     ]
-    },
-    {
-     "section": "Listening Section 1",
-     "passage_title": null,
-     "instructions": "Complete the table below.",
-     "word_limit": "",
-     "questions": [
-      {
-       "qNo": 7,
-       "prompt": "Write ONE WORD ONLY for each answer. Shopping Fish market a dozen prawns A NANAEUL OF 7 aceccsccncececnnnene (type of seaweed) Organic shop DEANS AN AB wavviccsssussessnmne SPICES AN Y oo.vccccssnsnsesnsen for dessert Listening",
-       "choices": [],
-       "answer": "ear",
-       "needs_review": true,
-       "review_note": "prompt: repeated-char OCR run 'nnn'"
-      },
-      {
-       "qNo": 8,
-       "prompt": "Write ONE WORD ONLY for each answer. Shopping Fish market a dozen prawns A NANAEUL OF 7 aceccsccncececnnnene (type of seaweed) Organic shop DEANS AN AB wavviccsssussessnmne SPICES AN Y oo.vccccssnsnsesnsen for dessert Listening",
-       "choices": [],
-       "answer": "clapping",
-       "needs_review": true,
-       "review_note": "key: ocr cleanup applied to key; verify; prompt: repeated-char OCR run 'nnn'"
-      },
-      {
-       "qNo": 9,
-       "prompt": "Write ONE WORD ONLY for each answer. Shopping Fish market a dozen prawns A NANAEUL OF 7 aceccsccncececnnnene (type of seaweed) Organic shop DEANS AN AB wavviccsssussessnmne SPICES AN Y oo.vccccssnsnsesnsen for dessert Listening",
-       "choices": [],
-       "answer": "recording",
-       "needs_review": true,
-       "review_note": "key: ocr cleanup applied to key; verify; prompt: repeated-char OCR run 'nnn'"
-      }
-     ]
     }
    ]
   },
@@ -2133,6 +2161,22 @@
    ],
    "groups": [
     {
+     "section": "Listening Section 1",
+     "passage_title": null,
+     "instructions": "Complete the table below. Write ONE WORD ONLY for each answer. Shopping",
+     "word_limit": "ONE WORD ONLY",
+     "questions": [
+      {
+       "qNo": 7,
+       "prompt": "Fish market a dozen prawns A NANAEUL OF 7 ___ (type of seaweed Organic shop DEANS AN AB wavviccsssussessnmne SPICES AN Y oo.vccccssnsnsesnsen for dessert Listening",
+       "choices": [],
+       "answer": "samphire",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify; prompt: repeated-char OCR run 'sss'"
+      }
+     ]
+    },
+    {
      "section": "Listening Section 2",
      "passage_title": null,
      "instructions": "aL 57 C is aimed at children with a disability D involves a drama activity E focuses on new relationships F is aimed at a specific age group G explores an unhappy feeling H raises awareness of a particular culture Festival workshops",
@@ -2325,45 +2369,90 @@
     {
      "section": "Listening Section 3",
      "passage_title": null,
-     "instructions": "Complete the flowchart below.",
+     "instructions": "Put each group in a separate cage. Feed group A commercial mouse food. Take measurements using an electronic scale. Listening",
      "word_limit": "",
      "questions": [
       {
        "qNo": 26,
-       "prompt": "Choose FIVE answers from the box and write the correct letter, A—H, next to",
-       "choices": [],
+       "prompt": "Choose mice which are all the SAME 26 ___",
+       "choices": [
+        "A. size",
+        "B. escape",
+        "C. age",
+        "D. water",
+        "E. cereal",
+        "F. calculations",
+        "G. changes",
+        "H. colour"
+       ],
        "answer": "C",
        "needs_review": true,
        "review_note": "key: ocr cleanup applied to key; verify"
       },
       {
        "qNo": 27,
-       "prompt": "Choose FIVE answers from the box and write the correct letter, A—H, next to",
-       "choices": [],
+       "prompt": "Divide the mice into two groups, each with a different 27 ___ ccssscssesemssseene",
+       "choices": [
+        "A. size",
+        "B. escape",
+        "C. age",
+        "D. water",
+        "E. cereal",
+        "F. calculations",
+        "G. changes",
+        "H. colour"
+       ],
        "answer": "H",
        "needs_review": true,
-       "review_note": "key: ocr cleanup applied to key; verify"
+       "review_note": "key: ocr cleanup applied to key; verify; prompt: repeated-char OCR run 'sss'"
       },
       {
        "qNo": 28,
-       "prompt": "Choose FIVE answers from the box and write the correct letter, A—H, next to",
-       "choices": [],
+       "prompt": "Feed group B the same, but also sugar Contained iN 28 ___",
+       "choices": [
+        "A. size",
+        "B. escape",
+        "C. age",
+        "D. water",
+        "E. cereal",
+        "F. calculations",
+        "G. changes",
+        "H. colour"
+       ],
        "answer": "CE",
        "needs_review": true,
        "review_note": "key: ocr cleanup applied to key; verify"
       },
       {
        "qNo": 29,
-       "prompt": "Choose FIVE answers from the box and write the correct letter, A—H, next to",
-       "choices": [],
+       "prompt": "Place them in a weighing Chamber to prevent 29 ___ ccs",
+       "choices": [
+        "A. size",
+        "B. escape",
+        "C. age",
+        "D. water",
+        "E. cereal",
+        "F. calculations",
+        "G. changes",
+        "H. colour"
+       ],
        "answer": "B",
        "needs_review": true,
        "review_note": "key: ocr cleanup applied to key; verify"
       },
       {
        "qNo": 30,
-       "prompt": "Choose FIVE answers from the box and write the correct letter, A—H, next to",
-       "choices": [],
+       "prompt": "Do all NECESSALY 30 ___",
+       "choices": [
+        "A. size",
+        "B. escape",
+        "C. age",
+        "D. water",
+        "E. cereal",
+        "F. calculations",
+        "G. changes",
+        "H. colour"
+       ],
        "answer": "F",
        "needs_review": true,
        "review_note": "key: ocr cleanup applied to key; verify"
@@ -2373,32 +2462,48 @@
     {
      "section": "Listening Section 4",
      "passage_title": null,
-     "instructions": "Complete the notes below. Write ONE WORD ONLY for each answer. Microplastics Where microplastics come from e — the breakdown of large pieces of plastic e —_waste from industry e the action of vehicle tyres on roads Effects of microplastics e = They Cause injuries tO the 32 wo. OF Wildlife and affect their digestive systems.",
+     "instructions": "Complete the notes below. Write ONE WORD ONLY for each answer. Microplastics Where microplastics come from e — the breakdown of large pieces of plastic e —_waste from industry e the action of vehicle tyres on roads Effects of microplastics",
      "word_limit": "ONE WORD ONLY",
      "questions": [
       {
-       "qNo": 33,
-       "prompt": "e They enter the food chain, e.g., in bottled and tap water, 33 ___ and seafood. e They may not affect human health, but they are already banned in skin cleaning",
+       "qNo": 32,
+       "prompt": "e = They Cause injuries tO the 32 ___ OF Wildlife and affect their digestive systems. e They enter the food chain, e.g., in bottled and tap water, 33 oss and seafood. e They may not affect human health, but they are already banned in skin cleaning",
        "choices": [],
-       "answer": "salt",
+       "answer": "mouths",
        "needs_review": true,
        "review_note": "key: ocr cleanup applied to key; verify"
       },
       {
        "qNo": 34,
-       "prompt": "PFOGUCES AN 34 ___ IN SOME Countries. e _ Microplastics enter the soil through the air, rAIN AN 35 esses « Microplastics in the soil — a study by Anglia Ruskin University e _Earthworms are important because they add 36 uu... tO the soil. e The study aimed to find whether microplastics in earthworms affect the ST dimommcmomeanne'Oh PIAS, e The study found that microplastics caused: = 98 voscsisisnisisiniemnnsannon LOSS IN Carthworms — fewer seeds to germinate",
+       "prompt": "PFOGUCES AN 34 ___ IN SOME Countries. e _ Microplastics enter the soil through the air, rAIN AN 35 esses Microplastics in the soil — a study by Anglia Ruskin University",
        "choices": [],
        "answer": "toothpaste",
        "needs_review": true,
-       "review_note": "key: ocr cleanup applied to key; verify; prompt: mojibake characters in prompt"
+       "review_note": "key: ocr cleanup applied to key; verify"
+      },
+      {
+       "qNo": 36,
+       "prompt": "e _Earthworms are important because they add 36 ___ tO the soil. e The study aimed to find whether microplastics in earthworms affect the ST dimommcmomeanne'Oh PIAS, e The study found that microplastics caused: = 98 voscsisisnisisiniemnnsannon LOSS IN Carthworms — fewer seeds to germinate",
+       "choices": [],
+       "answer": "nutrients",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify"
       },
       {
        "qNo": 39,
-       "prompt": "— arise in the level Of 39 ___ IN the soil. The study concluded: — soil should be seen as an important natural process. — changes to soil damage both ecosystems and 40 ou... .cccccssssssuussssssesnasseeee 4",
+       "prompt": "— arise in the level Of 39 ___ IN the soil. The study concluded: — soil should be seen as an important natural process.",
        "choices": [],
        "answer": "acid",
        "needs_review": true,
-       "review_note": "key: ocr cleanup applied to key; verify; prompt: repeated-char OCR run '...'"
+       "review_note": "key: ocr cleanup applied to key; verify"
+      },
+      {
+       "qNo": 40,
+       "prompt": "— changes to soil damage both ecosystems and 40 ___",
+       "choices": [],
+       "answer": "society",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify"
       }
      ]
     },
@@ -2474,51 +2579,51 @@
      "questions": [
       {
        "qNo": 8,
-       "prompt": "Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 8—13 on your answer sheet. Archaeological findings on Obi Excavations of rock shelters inside 8 o.com Near the village of Kelo revealed: e axes from around 14,000 years ago, probably used to make canoes e —_ evidence of travel between islands: — obsidian: a material that is not found naturally on Obi DW iccccccssesssssnsessussesuseeee Which resembled ones found on other islands. It is thought that from 8,000 years ago, Obi islanders: e may have switched from hunting to fishing e —_ probably took part in the production and Sale Of 13 occas « > 65 op.",
+       "prompt": "Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 8—13 on your answer sheet. Archaeological findings on Obi Excavations of rock shelters inside 8 o.com Near the village of Kelo revealed: e axes from around 14,000 years ago, probably used to make canoes e —_ evidence of travel between islands: — obsidian: a material that is not found naturally on Obi DW iccccccssesssssnsessussesuseeee Which resembled ones found on other islands. It is thought that from 8,000 years ago, Obi islanders: e may have switched from hunting to fishing e —_ probably took part in the production and Sale Of 13 occas > 65 op.",
        "choices": [],
        "answer": "YES",
        "needs_review": true,
-       "review_note": "key: number missing in OCR; assigned by sequence; prompt: mojibake characters in prompt"
+       "review_note": "key: number missing in OCR; assigned by sequence; prompt: repeated-char OCR run '000'"
       },
       {
        "qNo": 9,
-       "prompt": "Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 8—13 on your answer sheet. Archaeological findings on Obi Excavations of rock shelters inside 8 o.com Near the village of Kelo revealed: e axes from around 14,000 years ago, probably used to make canoes e —_ evidence of travel between islands: — obsidian: a material that is not found naturally on Obi DW iccccccssesssssnsessussesuseeee Which resembled ones found on other islands. It is thought that from 8,000 years ago, Obi islanders: e may have switched from hunting to fishing e —_ probably took part in the production and Sale Of 13 occas « > 65 op.",
+       "prompt": "Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 8—13 on your answer sheet. Archaeological findings on Obi Excavations of rock shelters inside 8 o.com Near the village of Kelo revealed: e axes from around 14,000 years ago, probably used to make canoes e —_ evidence of travel between islands: — obsidian: a material that is not found naturally on Obi DW iccccccssesssssnsessussesuseeee Which resembled ones found on other islands. It is thought that from 8,000 years ago, Obi islanders: e may have switched from hunting to fishing e —_ probably took part in the production and Sale Of 13 occas > 65 op.",
        "choices": [],
        "answer": "op",
        "needs_review": true,
-       "review_note": "key: number missing in OCR; assigned by sequence; prompt: mojibake characters in prompt"
+       "review_note": "key: number missing in OCR; assigned by sequence; prompt: repeated-char OCR run '000'"
       },
       {
        "qNo": 10,
-       "prompt": "Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 8—13 on your answer sheet. Archaeological findings on Obi Excavations of rock shelters inside 8 o.com Near the village of Kelo revealed: e axes from around 14,000 years ago, probably used to make canoes e —_ evidence of travel between islands: — obsidian: a material that is not found naturally on Obi DW iccccccssesssssnsessussesuseeee Which resembled ones found on other islands. It is thought that from 8,000 years ago, Obi islanders: e may have switched from hunting to fishing e —_ probably took part in the production and Sale Of 13 occas « > 65 op.",
+       "prompt": "Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 8—13 on your answer sheet. Archaeological findings on Obi Excavations of rock shelters inside 8 o.com Near the village of Kelo revealed: e axes from around 14,000 years ago, probably used to make canoes e —_ evidence of travel between islands: — obsidian: a material that is not found naturally on Obi DW iccccccssesssssnsessussesuseeee Which resembled ones found on other islands. It is thought that from 8,000 years ago, Obi islanders: e may have switched from hunting to fishing e —_ probably took part in the production and Sale Of 13 occas > 65 op.",
        "choices": [],
        "answer": null,
        "needs_review": true,
-       "review_note": "no key in OCR; answer left null; prompt: mojibake characters in prompt"
+       "review_note": "no key in OCR; answer left null; prompt: repeated-char OCR run '000'"
       },
       {
        "qNo": 11,
-       "prompt": "Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 8—13 on your answer sheet. Archaeological findings on Obi Excavations of rock shelters inside 8 o.com Near the village of Kelo revealed: e axes from around 14,000 years ago, probably used to make canoes e —_ evidence of travel between islands: — obsidian: a material that is not found naturally on Obi DW iccccccssesssssnsessussesuseeee Which resembled ones found on other islands. It is thought that from 8,000 years ago, Obi islanders: e may have switched from hunting to fishing e —_ probably took part in the production and Sale Of 13 occas « > 65 op.",
+       "prompt": "Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 8—13 on your answer sheet. Archaeological findings on Obi Excavations of rock shelters inside 8 o.com Near the village of Kelo revealed: e axes from around 14,000 years ago, probably used to make canoes e —_ evidence of travel between islands: — obsidian: a material that is not found naturally on Obi DW iccccccssesssssnsessussesuseeee Which resembled ones found on other islands. It is thought that from 8,000 years ago, Obi islanders: e may have switched from hunting to fishing e —_ probably took part in the production and Sale Of 13 occas > 65 op.",
        "choices": [],
        "answer": "beads",
        "needs_review": true,
-       "review_note": "key: ocr cleanup applied to key; verify; prompt: mojibake characters in prompt"
+       "review_note": "key: ocr cleanup applied to key; verify; prompt: repeated-char OCR run '000'"
       },
       {
        "qNo": 12,
-       "prompt": "Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 8—13 on your answer sheet. Archaeological findings on Obi Excavations of rock shelters inside 8 o.com Near the village of Kelo revealed: e axes from around 14,000 years ago, probably used to make canoes e —_ evidence of travel between islands: — obsidian: a material that is not found naturally on Obi DW iccccccssesssssnsessussesuseeee Which resembled ones found on other islands. It is thought that from 8,000 years ago, Obi islanders: e may have switched from hunting to fishing e —_ probably took part in the production and Sale Of 13 occas « > 65 op.",
+       "prompt": "Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 8—13 on your answer sheet. Archaeological findings on Obi Excavations of rock shelters inside 8 o.com Near the village of Kelo revealed: e axes from around 14,000 years ago, probably used to make canoes e —_ evidence of travel between islands: — obsidian: a material that is not found naturally on Obi DW iccccccssesssssnsessussesuseeee Which resembled ones found on other islands. It is thought that from 8,000 years ago, Obi islanders: e may have switched from hunting to fishing e —_ probably took part in the production and Sale Of 13 occas > 65 op.",
        "choices": [],
        "answer": "pottery",
        "needs_review": true,
-       "review_note": "key: ocr cleanup applied to key; verify; prompt: mojibake characters in prompt"
+       "review_note": "key: ocr cleanup applied to key; verify; prompt: repeated-char OCR run '000'"
       },
       {
        "qNo": 13,
-       "prompt": "Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 8—13 on your answer sheet. Archaeological findings on Obi Excavations of rock shelters inside 8 o.com Near the village of Kelo revealed: e axes from around 14,000 years ago, probably used to make canoes e —_ evidence of travel between islands: — obsidian: a material that is not found naturally on Obi DW iccccccssesssssnsessussesuseeee Which resembled ones found on other islands. It is thought that from 8,000 years ago, Obi islanders: e may have switched from hunting to fishing e —_ probably took part in the production and Sale Of 13 occas « > 65 op.",
+       "prompt": "Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 8—13 on your answer sheet. Archaeological findings on Obi Excavations of rock shelters inside 8 o.com Near the village of Kelo revealed: e axes from around 14,000 years ago, probably used to make canoes e —_ evidence of travel between islands: — obsidian: a material that is not found naturally on Obi DW iccccccssesssssnsessussesuseeee Which resembled ones found on other islands. It is thought that from 8,000 years ago, Obi islanders: e may have switched from hunting to fishing e —_ probably took part in the production and Sale Of 13 occas > 65 op.",
        "choices": [],
        "answer": "spices",
        "needs_review": true,
-       "review_note": "prompt: mojibake characters in prompt"
+       "review_note": "prompt: repeated-char OCR run '000'"
       }
      ]
     },
@@ -2811,6 +2916,30 @@
        "review_note": "key: ocr cleanup applied to key; verify"
       }
      ]
+    },
+    {
+     "section": "Listening Section 1",
+     "passage_title": null,
+     "instructions": "Complete the notes below. Write ONE WORD ANDIOR A NUMBER for each answer. Local food shops Where to go",
+     "word_limit": "",
+     "questions": [
+      {
+       "qNo": 1,
+       "prompt": "e = Kite Place — near the 1 ___ Fish market CFOS NS 2 rasistsicsstsasisisesrcicoiesnasens NG turn right Organic shop @ Called 8 pcssccesiremsrsnonannin e below a restaurant in the large, grey building Supermarket",
+       "choices": [],
+       "answer": "harbour harbor",
+       "needs_review": true,
+       "review_note": "group moved from T2 (page-head lag); key: ocr cleanup applied to key; verify"
+      },
+      {
+       "qNo": 8,
+       "prompt": "° take 8 ___ Minibus, number 289 op 55",
+       "choices": [],
+       "answer": "melon",
+       "needs_review": true,
+       "review_note": "group moved from T2 (page-head lag); key: ocr cleanup applied to key; verify; prompt: mojibake characters in prompt"
+      }
+     ]
     }
    ]
   },
@@ -3041,14 +3170,54 @@
     {
      "section": "Listening Section 1",
      "passage_title": null,
-     "instructions": "Complete the notes below. Write ONE WORD AND/OR A NUMBER for each answer. First day at work",
-     "word_limit": "ONE WORD AND/OR A NUMBER",
+     "instructions": "Complete the notes below.",
+     "word_limit": "",
      "questions": [
       {
        "qNo": 1,
-       "prompt": "e Name of supervisor: 1 ___ e Where to leave coat and bag: USO cdiarmnnccmmmmmn iN Stattroom e See Tiffany in HR: LO: GIVES caisicisccinnanisarinanaccacas TUM 10:CONO CUA sssssiausirisascscruconicices e —_ Location of HR office: ONS cccsnemmmenninimcaess OOF e — Supervisor’s mobile number: Dhiscrccsccenensaanmeerenene",
+       "prompt": "Write ONE WORD AND/OR A NUMBER for each answer. First day at work e Name of supervisor: 1 ncamanmamammnaanne e Where to leave coat and bag: USO cdiarmnnccmmmmmn iN Stattroom e See Tiffany in HR: LO: GIVES caisicisccinnanisarinanaccacas TUM 10:CONO CUA sssssiausirisascscruconicices e —_ Location of HR office: ONS cccsnemmmenninimcaess OOF e — Supervisor’s mobile number: Dhiscrccsccenensaanmeerenene",
        "choices": [],
        "answer": "Kaeden",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify; prompt: repeated-char OCR run 'mmmmm'"
+      },
+      {
+       "qNo": 2,
+       "prompt": "Write ONE WORD AND/OR A NUMBER for each answer. First day at work e Name of supervisor: 1 ncamanmamammnaanne e Where to leave coat and bag: USO cdiarmnnccmmmmmn iN Stattroom e See Tiffany in HR: LO: GIVES caisicisccinnanisarinanaccacas TUM 10:CONO CUA sssssiausirisascscruconicices e —_ Location of HR office: ONS cccsnemmmenninimcaess OOF e — Supervisor’s mobile number: Dhiscrccsccenensaanmeerenene",
+       "choices": [],
+       "answer": "locker(s)",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify; prompt: repeated-char OCR run 'mmmmm'"
+      },
+      {
+       "qNo": 3,
+       "prompt": "Write ONE WORD AND/OR A NUMBER for each answer. First day at work e Name of supervisor: 1 ncamanmamammnaanne e Where to leave coat and bag: USO cdiarmnnccmmmmmn iN Stattroom e See Tiffany in HR: LO: GIVES caisicisccinnanisarinanaccacas TUM 10:CONO CUA sssssiausirisascscruconicices e —_ Location of HR office: ONS cccsnemmmenninimcaess OOF e — Supervisor’s mobile number: Dhiscrccsccenensaanmeerenene",
+       "choices": [],
+       "answer": "passport",
+       "needs_review": true,
+       "review_note": "prompt: repeated-char OCR run 'mmmmm'"
+      },
+      {
+       "qNo": 4,
+       "prompt": "Write ONE WORD AND/OR A NUMBER for each answer. First day at work e Name of supervisor: 1 ncamanmamammnaanne e Where to leave coat and bag: USO cdiarmnnccmmmmmn iN Stattroom e See Tiffany in HR: LO: GIVES caisicisccinnanisarinanaccacas TUM 10:CONO CUA sssssiausirisascscruconicices e —_ Location of HR office: ONS cccsnemmmenninimcaess OOF e — Supervisor’s mobile number: Dhiscrccsccenensaanmeerenene",
+       "choices": [],
+       "answer": "uniform",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify; prompt: repeated-char OCR run 'mmmmm'"
+      },
+      {
+       "qNo": 5,
+       "prompt": "Write ONE WORD AND/OR A NUMBER for each answer. First day at work e Name of supervisor: 1 ncamanmamammnaanne e Where to leave coat and bag: USO cdiarmnnccmmmmmn iN Stattroom e See Tiffany in HR: LO: GIVES caisicisccinnanisarinanaccacas TUM 10:CONO CUA sssssiausirisascscruconicices e —_ Location of HR office: ONS cccsnemmmenninimcaess OOF e — Supervisor’s mobile number: Dhiscrccsccenensaanmeerenene",
+       "choices": [],
+       "answer": "third 3rd",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify; prompt: repeated-char OCR run 'mmmmm'"
+      },
+      {
+       "qNo": 6,
+       "prompt": "Write ONE WORD AND/OR A NUMBER for each answer. First day at work e Name of supervisor: 1 ncamanmamammnaanne e Where to leave coat and bag: USO cdiarmnnccmmmmmn iN Stattroom e See Tiffany in HR: LO: GIVES caisicisccinnanisarinanaccacas TUM 10:CONO CUA sssssiausirisascscruconicices e —_ Location of HR office: ONS cccsnemmmenninimcaess OOF e — Supervisor’s mobile number: Dhiscrccsccenensaanmeerenene",
+       "choices": [],
+       "answer": "0412665 903",
        "needs_review": true,
        "review_note": "key: ocr cleanup applied to key; verify; prompt: repeated-char OCR run 'mmmmm'"
       }
@@ -3336,7 +3505,7 @@
     {
      "section": "Listening Section 4",
      "passage_title": null,
-     "instructions": "0.9., 38 voces Were SOON attracted to the area. Complete the notes below. Write ONE WORD ONLY for each answer. Tree planting Reforestation projects should: e __ include a range of tree species",
+     "instructions": "Complete the notes below. Write ONE WORD ONLY for each answer. Tree planting Reforestation projects should: e __ include a range of tree species",
      "word_limit": "ONE WORD ONLY",
      "questions": [
       {
@@ -3357,7 +3526,7 @@
       },
       {
        "qNo": 35,
-       "prompt": "e Base planning decisions on information from ACCULAatE 35 ___ e Drones are useful for identifying areas in Brazil which are endangered by",
+       "prompt": "e Base planning decisions on information from ACCULAatE 35 ___ cece e Drones are useful for identifying areas in Brazil which are endangered by",
        "choices": [],
        "answer": "maps",
        "needs_review": false,
@@ -3373,19 +3542,35 @@
       },
       {
        "qNo": 37,
-       "prompt": "— increasing the 37 ___ Of recovery by attracting animals and birds, Involving local communities e Destruction of mangrove forests in Madagascar made it difficult for people to",
+       "prompt": "— increasing the 37 ___ Of recovery by attracting animals and birds,",
        "choices": [],
        "answer": "speed",
        "needs_review": true,
        "review_note": "key: ocr cleanup applied to key; verify"
       },
       {
+       "qNo": 38,
+       "prompt": "0.9., 38 ___ Were SOON attracted to the area. Involving local communities e Destruction of mangrove forests in Madagascar made it difficult for people to",
+       "choices": [],
+       "answer": "monkeys",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify"
+      },
+      {
        "qNo": 39,
-       "prompt": "Make a liVING FFOM 39 ___ e The mangrove reforestation project: — provided employment for local people — restored a healthy ecosystem — protects against the higher risk Of 40 oo. cccsseeeee «",
+       "prompt": "Make a liVING FFOM 39 ___ e The mangrove reforestation project: — provided employment for local people — restored a healthy ecosystem",
        "choices": [],
        "answer": "fishing",
        "needs_review": true,
-       "review_note": "key: ocr cleanup applied to key; verify; prompt: mojibake characters in prompt"
+       "review_note": "key: ocr cleanup applied to key; verify"
+      },
+      {
+       "qNo": 40,
+       "prompt": "— protects against the higher risk Of 40 ___ cccsseeeee",
+       "choices": [],
+       "answer": "flooding",
+       "needs_review": true,
+       "review_note": "key: ocr cleanup applied to key; verify; prompt: repeated-char OCR run 'ccc'"
       }
      ]
     },
@@ -3448,9 +3633,25 @@
     {
      "section": "Reading Passage 1",
      "passage_title": "The impact of climate change on butterflies in Britain",
-     "instructions": "Complete the notes below. Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 7—13 on your answer sheet. Butterflies in the UK The Small Blue e first appears at the start OF 8 oo. sssssssesssesseeeee e — completes more than one reproductive cycle per year The High Brown Fritillary e has one reproductive cycle | e = is CONSIdered to bE MOTE Y ou... sss. than other species e its caterpillars occupy a limited range Of 10 oo. ccccssssssesussseees The Silver-studded Blue e _ is already able to reproduce twice a year iN WarM AFeAS OF 114 on .ccccecccssssssssseesssssseeeeeeen The White Admiral",
+     "instructions": "Complete the notes below. Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 7—13 on your answer sheet. Butterflies in the UK The Small Blue",
      "word_limit": "ONE WORD ONLY",
      "questions": [
+      {
+       "qNo": 8,
+       "prompt": "e first appears at the start OF 8 ___ sssssssesssesseeeee e — completes more than one reproductive cycle per year The High Brown Fritillary e has one reproductive cycle e = is CONSIdered to bE MOTE Y ou... sss. than other species",
+       "choices": [],
+       "answer": null,
+       "needs_review": true,
+       "review_note": "no key in OCR; answer left null; prompt: repeated-char OCR run 'sssssss'"
+      },
+      {
+       "qNo": 10,
+       "prompt": "e its caterpillars occupy a limited range Of 10 ___ ccccssssssesussseees The Silver-studded Blue e _ is already able to reproduce twice a year iN WarM AFeAS OF 114 on .ccccecccssssssssseesssssseeeeeeen The White Admiral",
+       "choices": [],
+       "answer": null,
+       "needs_review": true,
+       "review_note": "no key in OCR; answer left null; prompt: repeated-char OCR run 'cccc'"
+      },
       {
        "qNo": 13,
        "prompt": "e both climate change and the 13 ___ Of the caterpillar are possible reasons for decline op a 87",

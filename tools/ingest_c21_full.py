@@ -270,7 +270,7 @@ def parse_body(lines):
     cur_group = None
     pending_gap = None  # (qNo, prev-line) for a gap number wrapped
     # onto the next line (dots alone on the following line)
-    pending_test = [None]  # test number seen but not yet committed: page
+    pending_test: list = [None]  # test number seen but not yet committed: page
     # running heads ("Test N" atop every page) lag/lead the content by
     # up to a page, so a different-number head only takes effect at the
     # next section-level head (PART / passage / LISTENING / ...)
@@ -354,6 +354,7 @@ def parse_body(lines):
             m = SEC_HEAD.match(line)
             if m:
                 commit_test()
+                pending_gap = None
                 new_group(f"Listening Section {m.group(1)}")
                 state = "questions"
                 rng = Q_HEAD_FULL.match(f"Questions {m.group(2)}")
@@ -366,6 +367,7 @@ def parse_body(lines):
             m = READ_PASS.match(line)
             if m:
                 commit_test()
+                pending_gap = None
                 flush_group()
                 state = "readpass"
                 cur_pass_sec = f"Reading Passage {m.group(1)}"
@@ -391,6 +393,7 @@ def parse_body(lines):
         m = SEC_HEAD.match(line)
         if m:
             commit_test()
+            pending_gap = None
             new_group(f"Listening Section {m.group(1)}")
             cur_pass_sec = None
             state = "questions"
@@ -403,8 +406,18 @@ def parse_body(lines):
             continue
         m = Q_HEAD_FULL.match(line)
         if m:
+            commit_test()
+            pending_gap = None
             if cur_group is None:
-                new_group(cur_pass_sec or cur_section or "Listening ?",
+                sec = cur_pass_sec or cur_section
+                if sec is None:
+                    sec = ("Listening Section %d" % ((int(m.group(1)) - 1) // 10 + 1)
+                           if 1 <= int(m.group(1)) <= 40 and 1 <= int(m.group(2)) <= 40
+                           and (int(m.group(1)) - 1) // 10 == (int(m.group(2)) - 1) // 10
+                           else "Listening ?")
+                    if sec.startswith("Listening Section"):
+                        cur_section = sec
+                new_group(sec or "Listening ?",
                           cur_pass_title)
             else:
                 cur_group.flush_shared()
@@ -464,7 +477,7 @@ def parse_body(lines):
             # question, otherwise it is orphan debris, never prompt text.
             if pending_gap is not None:
                 q, prev = pending_gap
-                rest = (mp.group(2) or "").strip()
+                rest = (mp.group(1) or "").strip()
                 prompt = clean(
                     re.sub(r"(\d{1,2})\s*$", r"\1 ___", prev)
                     + (" " + rest if rest else ""))
@@ -525,6 +538,15 @@ def parse_body(lines):
             rest = clean(m.group(2))
             if len(rest.replace(" ", "")) < 2:
                 continue  # page-foot fragment like "24 i", not a question
+            tm = re.search(r"(?<!\d)(\d{1,2})\s*$", rest)
+            if (tm and 1 <= int(tm.group(1)) <= 40 and tm.group(1) != m.group(1)
+                    and GAP.search(line) is None):
+                # table row headed by a duration or label ("5 minutes
+                # tuning guitars 7"): the leading number is not a
+                # question. Carry the trailing gap number for the
+                # wrapped dots instead of inventing a question here.
+                pending_gap = (int(tm.group(1)), line)
+                continue
             prompt = clean(GAP.sub(lambda x: f"{x.group(1)} ___", rest))
             cur_group.questions.append(
                 {"qNo": q, "prompt": prompt,

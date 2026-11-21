@@ -140,12 +140,18 @@ def split_pages(pages):
     return pages[:audio[0]], key_pages
 
 
+BULLET_START = re.compile(r"^\s*(?:[e©•\-=o°@+:\||»«]|\bhe\b)\s*\S")
 OCR_LEADER = re.compile(
-    r"(?<!\d)(\d{1,2})\s+([soceunxmziabd._~\-·;: ]{3,}?)"
-    r"(?=\s+[A-Z]|\s*\+?\s*$)")
-OCR_DIGIT_GLUE = re.compile(r"(?<!\d)(\d)([GOSBIZ])\b")
+    r"(?<!\d)(\d{1,2})\s+(?:([soceunxmziabdwvrhy0-9 ]{3,}?)(?=\s+[A-Z])"
+    r"|([soceunxmziabdwvrhy0-9]*[._~\-·:;][soceunxmziabdwvrhy0-9._~\-·;: ]*?)"
+    r"(?=\s+[A-Za-z]|\s*$)"
+    r"|([soceunxmziabdwvrhy0-9 ]*?(.)\5{2,}[soceunxmziabdwvrhy0-9 ]*?)"
+    r"(?=\s*$))")
+OCR_TRAIL_LEAD = re.compile(
+    r"(?<!\d)(\d{1,2})\s+[soceunxmziabdwv._~\-·;:]{3,}\s*$")
+OCR_DIGIT_GLUE = re.compile(r"(?<!\d)(\d)([GOSBIZD])\b")
 OCR_DIGIT_MAP = {"G": "6", "O": "0", "S": "5", "B": "8",
-                 "I": "1", "Z": "2"}
+                 "I": "1", "Z": "2", "D": "0"}
 BOX_ITEM = re.compile(
     r"(?:^|\s)([A-J])\s*[_~.]{1,3}\s+([A-Za-z][A-Za-z\-]*)")
 BOX_LINE = re.compile(
@@ -162,25 +168,55 @@ def ocr_gap_rewrite(lines):
     """
     out = []
     listening = False
+    inpassage = False
+    inskip = False
     for raw in lines:
         line = base.clean(raw)
-        if base.TEST_HEAD.match(line):
-            listening = False
-        elif base.SEC_HEAD.match(line):
+        if base.SEC_HEAD.match(line):
             listening = True
+            inpassage = False
+            inskip = False
         elif base.READ_PASS.match(line):
             listening = False
-        if listening:
+            inpassage = True
+            inskip = False
+        elif base.TASK_HEAD.search(line) or base.SPEAK_HEAD.match(line):
+            listening = False
+            inpassage = False
+            inskip = True
+        # NOTE: TEST_HEAD deliberately ignored here. Page running heads
+        # ("Test N" atop every page) lag/lead the content, and the test
+        # number is irrelevant to gap rewriting (listening-only anyway).
+        if inskip:
+            pass
+        elif not listening and not inpassage:
+            # body lines outside passages (table rows): safe
+            # normalisations only (digit glue, Y-as-9, junk tails)
+            raw = OCR_DIGIT_GLUE.sub(
+                lambda m: m.group(1) + OCR_DIGIT_MAP[m.group(2)], raw)
+            raw = re.sub(r"(?<![\w\d])Y(?=\s*[.…_]{2,})", "9", raw)
+            raw = re.sub(r"\s*[«»\"“”'‘()|]+\s*$", "", raw)
+            raw = re.sub(r"\s*\+\s*$", "", raw)
+        if inskip:
+            pass
+        elif listening or BULLET_START.match(raw.replace("\x0c", "")):
+            # scanned tables: number + OCR-mangled leader. Bulleted
+            # rows qualify anywhere outside skips (prose never starts
+            # with a bullet + number + leader run); in-passage bullets
+            # are rare and span/key checks backstop them.
+            raw = re.sub(r"\s*[«»\"“”'‘()|]+\s*$", "", raw)
+            raw = re.sub(r"\s*\+\s*$", "", raw)
             def _rep(m):
                 q = int(m.group(1))
-                lead = re.sub(r"\s+", "", m.group(2))
+                lead = re.sub(
+                    r"\s+", "",
+                    m.group(2) or m.group(3) or m.group(4) or "")
                 if 1 <= q <= 40 and len(lead) >= 3:
                     return f"{m.group(1)} ........"
                 return m.group(0)
             raw = OCR_DIGIT_GLUE.sub(
                 lambda m: m.group(1) + OCR_DIGIT_MAP[m.group(2)], raw)
             raw = OCR_LEADER.sub(_rep, raw)
-            raw = re.sub(r"\s*\+\s*$", "", raw)
         out.append(raw)
     return out
 
@@ -608,12 +644,12 @@ def build(pdf, out):
 
     data = {"book": "C19", "tests": []}
     problems = list(key_problems)
-    for t in sorted(bodies):
-        if t not in keys:
-            problems.append(f"test {t}: no keys found")
-            continue
+
+    def compute_winners(t, groups):
+        """Return ([(group, [qs])] in order, dup_problems)."""
         winners = {}
-        for g in bodies[t]["groups"]:
+        dups = []
+        for g in groups:
             for q in g.questions:
                 k = (g.section, q["qNo"])
                 prev = winners.get(k)
@@ -627,18 +663,79 @@ def build(pdf, out):
                     pass
                 elif (q["prompt"] != prev[1]["prompt"]
                         or q["choices"] != prev[1]["choices"]):
-                    problems.append(
+                    dups.append(
                         f"T{t} {g.section} Q{q['qNo']}: duplicate prompts "
                         f"({prev[1]['prompt'][:50]!r} vs "
                         f"{q['prompt'][:50]!r})")
-        tgroups = []
         by_group = {}
         for (sec, _), (g, q) in winners.items():
             by_group.setdefault(id(g), (g, []))[1].append(q)
-        for g in bodies[t]["groups"]:
-            if id(g) not in by_group:
+        ordered = [(g, sorted(qs, key=lambda x: x["qNo"]))
+                   for g, qs in
+                   (by_group[id(g)] for g in groups if id(g) in by_group)]
+        return ordered, dups
+
+    # Raw groups per test (mutable for relocation below).
+    test_groups = {t: list(bodies[t]["groups"]) for t in sorted(bodies)}
+    # Phase 1.5: page-head lag can strand a test's opening section in the
+    # previous test (its head prints a page late). Signature: a duplicate
+    # (section, qNo) with different prompts in test T while an adjacent
+    # test's same section is missing that number. Move the later-parsed
+    # group to the adjacent test.
+    moved_from = {}
+
+    def dup_loser_groups():
+        seen = {}
+        losers = []  # (t, sec, q, loser_group)
+        for t in sorted(test_groups):
+            for g in test_groups[t]:
+                for q in g.questions:
+                    k = (t, g.section, q["qNo"])
+                    if (k in seen and q.get("source") == "explicit"
+                            and seen[k][1].get("source") == "explicit"
+                            and q["prompt"] != seen[k][1]["prompt"]):
+                        losers.append((t, g.section, q["qNo"], g))
+                    else:
+                        seen.setdefault(k, (t, q))
+        return losers
+
+    for _ in range(3):
+        relocated = False
+        for t, sec, q, g in dup_loser_groups():
+            if id(g) in moved_from or g not in test_groups.get(t, []):
                 continue
-            _, qs = by_group[id(g)]
+            for nt in (t + 1, t - 1):
+                if nt not in test_groups:
+                    continue
+                have = {qq["qNo"] for gg in test_groups[nt]
+                        if gg.section == sec for qq in gg.questions}
+                if q in have:
+                    continue
+                lo, hi = section_span(sec)
+                if not lo <= q <= hi:
+                    continue
+                test_groups[t].remove(g)
+                test_groups[nt].append(g)
+                moved_from[id(g)] = t
+                relocated = True
+                break
+            if relocated:
+                break
+        if not relocated:
+            break
+    for t in sorted(test_groups):
+        if t not in keys:
+            problems.append(f"test {t}: no keys found")
+            continue
+        if t not in bodies:
+            problems.append(f"test {t}: no body parsed")
+            continue
+        # Phase 2: winners dedupe (moved groups integrate cleanly; any
+        # remaining duplicate is a real problem).
+        final_groups, dups = compute_winners(t, test_groups[t])
+        problems.extend(dups)
+        tgroups = []
+        for g, qs in final_groups:
             kind = ("listening" if g.section.startswith("Listening")
                     else "reading")
             lo, hi = section_span(g.section)
@@ -652,6 +749,10 @@ def build(pdf, out):
                     continue
                 ans = keys[t][kind].get(q["qNo"])
                 notes = []
+                if id(g) in moved_from:
+                    notes.append(
+                        f"group moved from T{moved_from[id(g)]} "
+                        f"(page-head lag)")
                 if ans is None:
                     notes.append("no key in OCR; answer left null")
                     problems.append(
@@ -698,6 +799,19 @@ def build(pdf, out):
                        if q["needs_review"])
     print("per-test (listening, reading, total):", counts)
     print(f"needs_review questions: {flagged}")
+    for t in data["tests"]:
+        for sec, lo, hi in [("Listening Section 1", 1, 10),
+                            ("Listening Section 2", 11, 20),
+                            ("Listening Section 3", 21, 30),
+                            ("Listening Section 4", 31, 40),
+                            ("Reading Passage 1", 1, 13),
+                            ("Reading Passage 2", 14, 26),
+                            ("Reading Passage 3", 27, 40)]:
+            have = {q["qNo"] for g in t["groups"]
+                    if g["section"] == sec for q in g["questions"]}
+            miss = [q for q in range(lo, hi + 1) if q not in have]
+            if miss:
+                print(f"  T{t['testNo']} {sec} missing body Qs: {miss}")
 
     total = sum(c[2] for c in counts.values())
     if problems:
