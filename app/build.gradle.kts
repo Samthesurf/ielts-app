@@ -16,6 +16,16 @@ android {
         versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Baked-in default key from gitignored meta.env (META_API_KEY=...).
+        // Settings screen can still override at runtime; key never committed.
+        val bundledKey = rootProject.file("meta.env").takeIf { it.exists() }
+            ?.readLines()
+            ?.firstOrNull { it.trim().startsWith("META_API_KEY=") }
+            ?.substringAfter("=")
+            ?.trim()
+            ?.trim('"')
+            ?: ""
+        buildConfigField("String", "META_API_KEY_DEFAULT", "\"$bundledKey\"")
     }
 
     buildTypes {
@@ -35,6 +45,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.10"

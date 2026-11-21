@@ -2,5 +2,6 @@
 build/
 app/build/
 local.properties
+meta.env
 *.iml
 .DS_Store

@@ -117,7 +117,9 @@ fun IeltsApp(
     var writingMarkHistory by remember { mutableStateOf<List<MarkResult>>(emptyList()) }
 
     var baseUrl by rememberSaveable { mutableStateOf(DEFAULT_API_BASE_URL) }
-    var apiKey by rememberSaveable { mutableStateOf("") }
+    // Pre-filled from gitignored meta.env at build time; user can still
+    // replace or clear it in Settings. Never logged.
+    var apiKey by rememberSaveable { mutableStateOf(com.samuel.ielts.BuildConfig.META_API_KEY_DEFAULT) }
     var model by rememberSaveable { mutableStateOf(DEFAULT_API_MODEL) }
     var settingsTestState by remember { mutableStateOf<SettingsTestState>(SettingsTestState.Idle) }
 
