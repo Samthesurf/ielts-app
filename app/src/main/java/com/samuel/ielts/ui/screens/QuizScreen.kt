@@ -54,7 +54,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -67,14 +69,21 @@ import com.samuel.ielts.model.PassageParagraph
 import com.samuel.ielts.model.QuestionTypeCategory
 import com.samuel.ielts.model.QuizAttemptSummary
 import com.samuel.ielts.model.QuizQuestion
+import com.samuel.ielts.model.QuizQuestionGroup
 import com.samuel.ielts.model.QuizSectionBundle
 import com.samuel.ielts.model.QuizSkillMode
 import com.samuel.ielts.model.ReadingPassage
 import com.samuel.ielts.model.TfngOption
 import com.samuel.ielts.model.YnngOption
+import com.samuel.ielts.ui.components.AssetImageState
+import com.samuel.ielts.ui.components.AssetImageThumbnailCard
+import com.samuel.ielts.ui.components.AssetImageZoomDialog
 import com.samuel.ielts.ui.components.IeltsIcons
+import com.samuel.ielts.ui.components.MissingAssetImagePlaceholder
+import com.samuel.ielts.ui.components.decodeAssetImageState
 import com.samuel.ielts.ui.theme.IeltsSpacing
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -590,6 +599,43 @@ private fun QuizQuestionsList(
     showSectionHeader: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val sectionLabel = plainSectionLabel(currentSection.shortLabel)
+    val displayGroups = remember(currentSection, sectionQuestions) {
+        if (currentSection.groups.isNotEmpty()) {
+            currentSection.groups
+        } else if (sectionQuestions.isNotEmpty()) {
+            listOf(
+                QuizQuestionGroup(
+                    id = "${currentSection.id}_default",
+                    instructions = currentSection.instructions,
+                    questions = sectionQuestions
+                )
+            )
+        } else {
+            emptyList()
+        }
+    }
+    val groupImagePaths = remember(displayGroups) {
+        displayGroups
+            .mapNotNull { it.imageAsset?.trim()?.takeIf(String::isNotEmpty) }
+            .distinct()
+    }
+    val groupImageStates = remember(currentSection.id) {
+        mutableStateMapOf<String, AssetImageState>()
+    }
+    LaunchedEffect(context, currentSection.id, groupImagePaths) {
+        groupImagePaths.forEach { assetPath ->
+            if (groupImageStates[assetPath] !is AssetImageState.Ready) {
+                groupImageStates[assetPath] = AssetImageState.Loading
+                groupImageStates[assetPath] = decodeAssetImageState(context, assetPath)
+            }
+        }
+    }
+    var zoomedGroupImage by remember(currentSection.id) {
+        mutableStateOf<ZoomedGroupImage?>(null)
+    }
+
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(IeltsSpacing.Md),
@@ -632,7 +678,7 @@ private fun QuizQuestionsList(
                     fillAnswers = fillAnswers
                 )
                 ResultBanner(
-                    sectionLabel = plainSectionLabel(currentSection.shortLabel),
+                    sectionLabel = sectionLabel,
                     sectionCorrect = sectionCorrectCount,
                     sectionTotal = sectionQuestions.size,
                     totalCorrect = totalCorrectCount,
@@ -643,47 +689,86 @@ private fun QuizQuestionsList(
             }
         }
 
-        items(items = sectionQuestions, key = { it.id }) { question ->
-            when (question) {
-                is QuizQuestion.Mcq -> McqQuestionCard(
-                    question = question,
-                    selectedIndices = mcqAnswers[question.id].orEmpty(),
-                    checked = checked,
-                    onToggleOption = { index ->
-                        if (question.requiredSelections <= 1) {
-                            mcqAnswers[question.id] = setOf(index)
-                        } else {
-                            val current = mcqAnswers[question.id].orEmpty().toMutableSet()
-                            if (index in current) {
-                                current.remove(index)
-                            } else {
-                                current.add(index)
+        displayGroups.forEach { group ->
+            val normalizedImageAsset = group.imageAsset?.trim()?.takeIf(String::isNotEmpty)
+            val showMissingPlaceholder = normalizedImageAsset == null && isMapOrPlanGroup(group)
+            if (normalizedImageAsset != null || showMissingPlaceholder) {
+                item(key = "${group.id}_visual") {
+                    if (normalizedImageAsset != null) {
+                        when (val imageState = groupImageStates[normalizedImageAsset] ?: AssetImageState.Loading) {
+                            is AssetImageState.Ready -> {
+                                AssetImageThumbnailCard(
+                                    imageBitmap = imageState.imageBitmap,
+                                    contentDescription = groupThumbnailContentDescription(group, sectionLabel),
+                                    caption = groupImageCaption(group),
+                                    onClick = {
+                                        zoomedGroupImage = ZoomedGroupImage(
+                                            imageBitmap = imageState.imageBitmap,
+                                            title = groupZoomDialogTitle(group),
+                                            contentDescription = groupZoomImageContentDescription(group, sectionLabel)
+                                        )
+                                    }
+                                )
                             }
-                            mcqAnswers[question.id] = current
+                            AssetImageState.Missing -> {
+                                MissingAssetImagePlaceholder(
+                                    message = missingGroupImageMessage(group)
+                                )
+                            }
+                            AssetImageState.Loading -> {
+                                // Asset decode is in progress; avoid flashing the missing placeholder.
+                            }
                         }
+                    } else {
+                        MissingAssetImagePlaceholder(
+                            message = missingGroupImageMessage(group)
+                        )
                     }
-                )
+                }
+            }
 
-                is QuizQuestion.TrueFalseNotGiven -> TfngQuestionCard(
-                    question = question,
-                    selectedOption = tfngAnswers[question.id],
-                    checked = checked,
-                    onSelect = { tfngAnswers[question.id] = it }
-                )
+            items(items = group.questions, key = { it.id }) { question ->
+                when (question) {
+                    is QuizQuestion.Mcq -> McqQuestionCard(
+                        question = question,
+                        selectedIndices = mcqAnswers[question.id].orEmpty(),
+                        checked = checked,
+                        onToggleOption = { index ->
+                            if (question.requiredSelections <= 1) {
+                                mcqAnswers[question.id] = setOf(index)
+                            } else {
+                                val current = mcqAnswers[question.id].orEmpty().toMutableSet()
+                                if (index in current) {
+                                    current.remove(index)
+                                } else {
+                                    current.add(index)
+                                }
+                                mcqAnswers[question.id] = current
+                            }
+                        }
+                    )
 
-                is QuizQuestion.YesNoNotGiven -> YnngQuestionCard(
-                    question = question,
-                    selectedOption = ynngAnswers[question.id],
-                    checked = checked,
-                    onSelect = { ynngAnswers[question.id] = it }
-                )
+                    is QuizQuestion.TrueFalseNotGiven -> TfngQuestionCard(
+                        question = question,
+                        selectedOption = tfngAnswers[question.id],
+                        checked = checked,
+                        onSelect = { tfngAnswers[question.id] = it }
+                    )
 
-                is QuizQuestion.FillBlank -> FillBlankQuestionCard(
-                    question = question,
-                    answerText = fillAnswers[question.id].orEmpty(),
-                    checked = checked,
-                    onValueChange = { fillAnswers[question.id] = it }
-                )
+                    is QuizQuestion.YesNoNotGiven -> YnngQuestionCard(
+                        question = question,
+                        selectedOption = ynngAnswers[question.id],
+                        checked = checked,
+                        onSelect = { ynngAnswers[question.id] = it }
+                    )
+
+                    is QuizQuestion.FillBlank -> FillBlankQuestionCard(
+                        question = question,
+                        answerText = fillAnswers[question.id].orEmpty(),
+                        checked = checked,
+                        onValueChange = { fillAnswers[question.id] = it }
+                    )
+                }
             }
         }
 
@@ -711,6 +796,112 @@ private fun QuizQuestionsList(
                 }
             }
         }
+    }
+
+    val activeZoomedImage = zoomedGroupImage
+    if (activeZoomedImage != null) {
+        AssetImageZoomDialog(
+            imageBitmap = activeZoomedImage.imageBitmap,
+            title = activeZoomedImage.title,
+            imageContentDescription = activeZoomedImage.contentDescription,
+            closeContentDescription = "Close image preview",
+            onDismiss = { zoomedGroupImage = null }
+        )
+    }
+}
+
+private data class ZoomedGroupImage(
+    val imageBitmap: ImageBitmap,
+    val title: String,
+    val contentDescription: String
+)
+
+private val MapOrPlanInstructionPattern = Regex(
+    pattern = "\\b(?:label|complete)\\s+the\\s+(?:floor\\s+)?(?:map|plan|diagram)\\b|\\b(?:floor\\s+)?(?:map|plan|diagram)\\s+below\\b",
+    option = RegexOption.IGNORE_CASE
+)
+private val FloorPlanPattern = Regex("\\bfloor\\s+plan\\b", RegexOption.IGNORE_CASE)
+private val MapWordPattern = Regex("\\bmap\\b", RegexOption.IGNORE_CASE)
+private val PlanRubricPattern = Regex(
+    pattern = "\\b(?:label|complete)\\s+the\\s+plan\\b|\\bplan\\s+below\\b",
+    option = RegexOption.IGNORE_CASE
+)
+private val DiagramWordPattern = Regex("\\bdiagram\\b", RegexOption.IGNORE_CASE)
+
+internal fun isMapOrPlanGroup(group: QuizQuestionGroup): Boolean {
+    if (MapOrPlanInstructionPattern.containsMatchIn(group.instructions)) {
+        return true
+    }
+    return group.questions.any { question ->
+        MapOrPlanInstructionPattern.containsMatchIn(question.instructions)
+    }
+}
+
+internal fun groupVisualKind(group: QuizQuestionGroup): String {
+    val combinedInstructions = buildString {
+        append(group.instructions)
+        if (group.instructions.isBlank()) {
+            group.questions.firstOrNull()?.instructions?.let { append(it) }
+        }
+    }
+    return when {
+        FloorPlanPattern.containsMatchIn(combinedInstructions) -> "Floor plan"
+        MapWordPattern.containsMatchIn(combinedInstructions) -> "Map"
+        PlanRubricPattern.containsMatchIn(combinedInstructions) -> "Plan"
+        DiagramWordPattern.containsMatchIn(combinedInstructions) -> "Diagram"
+        else -> "Image"
+    }
+}
+
+internal fun groupQuestionRangeLabel(group: QuizQuestionGroup): String? {
+    val numbers = group.questions.map { it.number }.sorted()
+    if (numbers.isEmpty()) return null
+    val first = numbers.first()
+    val last = numbers.last()
+    return if (first == last) "Question $first" else "Questions $first-$last"
+}
+
+internal fun groupImageCaption(group: QuizQuestionGroup): String {
+    val kind = groupVisualKind(group)
+    val range = groupQuestionRangeLabel(group)
+    return if (range != null) "$kind for $range" else kind
+}
+
+internal fun groupThumbnailContentDescription(
+    group: QuizQuestionGroup,
+    sectionLabel: String
+): String {
+    val caption = groupImageCaption(group)
+    return "$caption in $sectionLabel. Tap to zoom."
+}
+
+internal fun groupZoomDialogTitle(group: QuizQuestionGroup): String {
+    val kind = groupVisualKind(group)
+    val range = groupQuestionRangeLabel(group)
+    return if (range != null) "$kind ($range)" else kind
+}
+
+internal fun groupZoomImageContentDescription(
+    group: QuizQuestionGroup,
+    sectionLabel: String
+): String {
+    val kindLower = groupVisualKind(group).lowercase(Locale.US)
+    val range = groupQuestionRangeLabel(group)
+    return if (range != null) {
+        "Enlarged $kindLower for $range in $sectionLabel"
+    } else {
+        "Enlarged $kindLower in $sectionLabel"
+    }
+}
+
+internal fun missingGroupImageMessage(group: QuizQuestionGroup): String {
+    val kind = groupVisualKind(group)
+    val range = groupQuestionRangeLabel(group)
+    val subject = if (kind == "Image") "Image" else "$kind image"
+    return if (range != null) {
+        "$subject not available yet ($range)"
+    } else {
+        "$subject not available yet"
     }
 }
 

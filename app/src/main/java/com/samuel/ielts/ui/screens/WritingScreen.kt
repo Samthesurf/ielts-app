@@ -1,15 +1,9 @@
 package com.samuel.ielts.ui.screens
 
-import android.graphics.BitmapFactory
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.rememberTransformableState
-import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -41,9 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -51,26 +43,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.samuel.ielts.data.Attempt
 import com.samuel.ielts.model.CriterionScore
 import com.samuel.ielts.model.IeltsScoring
@@ -78,12 +58,15 @@ import com.samuel.ielts.model.InlineComment
 import com.samuel.ielts.model.WritingCriterion
 import com.samuel.ielts.model.WritingTaskData
 import com.samuel.ielts.model.WritingTaskType
+import com.samuel.ielts.ui.components.AssetImageState
+import com.samuel.ielts.ui.components.AssetImageThumbnailCard
+import com.samuel.ielts.ui.components.AssetImageZoomDialog
 import com.samuel.ielts.ui.components.IeltsIcons
+import com.samuel.ielts.ui.components.MissingAssetImagePlaceholder
+import com.samuel.ielts.ui.components.rememberAssetImageState
 import com.samuel.ielts.ui.theme.IeltsSpacing
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -313,34 +296,10 @@ fun WritingScreen(
     onSaveAttempt: (Attempt) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     val task1ChartPath = task1Data.chartAssetPath?.trim()?.takeIf { it.isNotEmpty() }
-    var task1ChartState by remember(task1ChartPath) {
-        mutableStateOf<Task1ChartState>(
-            if (task1ChartPath == null) Task1ChartState.Missing else Task1ChartState.Loading
-        )
-    }
-    LaunchedEffect(context, task1ChartPath) {
-        if (task1ChartPath == null) {
-            task1ChartState = Task1ChartState.Missing
-            return@LaunchedEffect
-        }
-        task1ChartState = Task1ChartState.Loading
-        val decoded = withContext(Dispatchers.IO) {
-            runCatching {
-                context.assets.open(task1ChartPath).use { stream ->
-                    BitmapFactory.decodeStream(stream)?.asImageBitmap()
-                }
-            }.getOrNull()
-        }
-        task1ChartState = if (decoded != null) {
-            Task1ChartState.Ready(decoded)
-        } else {
-            Task1ChartState.Missing
-        }
-    }
+    val task1ChartState = rememberAssetImageState(task1ChartPath)
     val task1ChartCaption = remember(chartCaptionLines, task1Data.prompt) {
         extractTask1ChartCaption(chartCaptionLines, task1Data.prompt)
     }
@@ -511,18 +470,23 @@ fun WritingScreen(
 
             if (activeTask == WritingTaskType.TASK_1) {
                 when (val chartState = task1ChartState) {
-                    is Task1ChartState.Ready -> {
-                        Task1ChartThumbnailCard(
+                    is AssetImageState.Ready -> {
+                        val description = if (task1ChartCaption != null) {
+                            "Task 1 chart: $task1ChartCaption. Tap to zoom."
+                        } else {
+                            "Task 1 chart for $testLabel. Tap to zoom."
+                        }
+                        AssetImageThumbnailCard(
                             imageBitmap = chartState.imageBitmap,
+                            contentDescription = description,
                             caption = task1ChartCaption,
-                            testLabel = testLabel,
                             onClick = { showChartZoomDialog = true }
                         )
                     }
-                    Task1ChartState.Missing -> {
-                        Task1MissingChartPlaceholder()
+                    AssetImageState.Missing -> {
+                        MissingAssetImagePlaceholder(message = "No chart for this task")
                     }
-                    Task1ChartState.Loading -> {
+                    AssetImageState.Loading -> {
                         // Asset decode is in progress; avoid flashing the missing placeholder.
                     }
                 }
@@ -605,12 +569,18 @@ fun WritingScreen(
         }
     }
 
-    val readyChart = task1ChartState as? Task1ChartState.Ready
+    val readyChart = task1ChartState as? AssetImageState.Ready
     if (showChartZoomDialog && activeTask == WritingTaskType.TASK_1 && readyChart != null) {
-        Task1ChartZoomDialog(
+        val dialogDescription = if (task1ChartCaption != null) {
+            "Enlarged Task 1 chart: $task1ChartCaption"
+        } else {
+            "Enlarged Task 1 chart for $testLabel"
+        }
+        AssetImageZoomDialog(
             imageBitmap = readyChart.imageBitmap,
-            caption = task1ChartCaption,
-            testLabel = testLabel,
+            title = task1ChartCaption ?: "$testLabel Task 1 Chart",
+            imageContentDescription = dialogDescription,
+            closeContentDescription = "Close chart preview",
             onDismiss = { showChartZoomDialog = false }
         )
     }
@@ -719,12 +689,6 @@ fun WritingScreen(
     }
 }
 
-private sealed interface Task1ChartState {
-    data object Loading : Task1ChartState
-    data object Missing : Task1ChartState
-    data class Ready(val imageBitmap: ImageBitmap) : Task1ChartState
-}
-
 private val OcrLegendPattern = Regex("\\b[A-Za-z]:\\s*[-=~]+[-=~oO0+*]*")
 private val OcrBareDebrisToken = Regex("(?<=^|\\s)(?:VI|Il|lI|II|III|IV|-+0+-+|[-~=_*+|@]{2,})(?=\\s|$)")
 private val PromptTimePrefix = Regex("^You should spend about \\d+ minutes on this task\\.\\s*", RegexOption.IGNORE_CASE)
@@ -784,279 +748,6 @@ private fun isMeaningfulCaption(cleaned: String): Boolean {
         it.isLetterOrDigit() || it in charArrayOf('-', ',', '\'', '(', ')', '/', '&')
     }
     return nonSpace > 0 && readable * 10 >= nonSpace * 7
-}
-
-@Composable
-private fun Task1ChartThumbnailCard(
-    imageBitmap: ImageBitmap,
-    caption: String?,
-    testLabel: String,
-    onClick: () -> Unit
-) {
-    val description = if (caption != null) {
-        "Task 1 chart: $caption. Tap to zoom."
-    } else {
-        "Task 1 chart for $testLabel. Tap to zoom."
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, NeutralBorder)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(IeltsSpacing.Sm),
-            verticalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(148.dp)
-                    .clip(MaterialTheme.shapes.medium)
-                    .background(Color.White)
-            ) {
-                Image(
-                    bitmap = imageBitmap,
-                    contentDescription = description,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(IeltsSpacing.Xs)
-                )
-                Surface(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                    shape = MaterialTheme.shapes.small,
-                    border = BorderStroke(1.dp, NeutralBorder),
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(IeltsSpacing.Xs)
-                ) {
-                    Icon(
-                        imageVector = IeltsIcons.ZoomIn,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .padding(IeltsSpacing.Xs)
-                            .size(IeltsSpacing.SmallIcon)
-                    )
-                }
-            }
-
-            if (caption != null) {
-                Text(
-                    text = caption,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = IeltsSpacing.Xs)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun Task1MissingChartPlaceholder() {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(1.dp, NeutralBorder),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(
-            text = "No chart for this task",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(
-                horizontal = IeltsSpacing.Md,
-                vertical = IeltsSpacing.Sm
-            )
-        )
-    }
-}
-
-@Composable
-private fun Task1ChartZoomDialog(
-    imageBitmap: ImageBitmap,
-    caption: String?,
-    testLabel: String,
-    onDismiss: () -> Unit
-) {
-    val minScale = 1f
-    val maxScale = 4f
-    val zoomStep = 0.5f
-
-    var scale by remember { mutableFloatStateOf(minScale) }
-    var offset by remember { mutableStateOf(Offset.Zero) }
-    var containerSize by remember { mutableStateOf(IntSize.Zero) }
-
-    fun clampOffset(candidate: Offset, targetScale: Float): Offset {
-        if (targetScale <= minScale || containerSize == IntSize.Zero) return Offset.Zero
-        val maxX = ((containerSize.width * (targetScale - 1f)) / 2f).coerceAtLeast(0f)
-        val maxY = ((containerSize.height * (targetScale - 1f)) / 2f).coerceAtLeast(0f)
-        return Offset(
-            x = candidate.x.coerceIn(-maxX, maxX),
-            y = candidate.y.coerceIn(-maxY, maxY)
-        )
-    }
-
-    fun updateScale(targetScale: Float) {
-        val clamped = targetScale.coerceIn(minScale, maxScale)
-        scale = clamped
-        offset = clampOffset(offset, clamped)
-    }
-
-    val transformableState = rememberTransformableState { zoomChange, panChange, _ ->
-        val nextScale = (scale * zoomChange).coerceIn(minScale, maxScale)
-        scale = nextScale
-        offset = clampOffset(offset + panChange, nextScale)
-    }
-
-    val dialogDescription = if (caption != null) {
-        "Enlarged Task 1 chart: $caption"
-    } else {
-        "Enlarged Task 1 chart for $testLabel"
-    }
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(IeltsSpacing.Md),
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, NeutralBorder)
-        ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = IeltsSpacing.Md, end = IeltsSpacing.Xs, top = IeltsSpacing.Xs, bottom = IeltsSpacing.Xs),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = caption ?: "$testLabel Task 1 Chart",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.size(IeltsSpacing.TouchTarget)
-                    ) {
-                        Icon(
-                            imageVector = IeltsIcons.Close,
-                            contentDescription = "Close chart preview",
-                            modifier = Modifier.size(IeltsSpacing.ActionIcon)
-                        )
-                    }
-                }
-
-                HorizontalDivider(color = NeutralBorder)
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .background(Color.White)
-                        .clipToBounds()
-                        .onSizeChanged { containerSize = it }
-                        .transformable(state = transformableState),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        bitmap = imageBitmap,
-                        contentDescription = dialogDescription,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(IeltsSpacing.Sm)
-                            .graphicsLayer(
-                                scaleX = scale,
-                                scaleY = scale,
-                                translationX = offset.x,
-                                translationY = offset.y
-                            )
-                    )
-                }
-
-                HorizontalDivider(color = NeutralBorder)
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = IeltsSpacing.Md, vertical = IeltsSpacing.Xs),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Pinch or tap +/- to zoom",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
-                    ) {
-                        IconButton(
-                            onClick = { updateScale(scale - zoomStep) },
-                            enabled = scale > minScale,
-                            modifier = Modifier.size(IeltsSpacing.TouchTarget)
-                        ) {
-                            Icon(
-                                imageVector = IeltsIcons.ZoomOut,
-                                contentDescription = "Zoom out",
-                                modifier = Modifier.size(IeltsSpacing.ActionIcon)
-                            )
-                        }
-                        TextButton(
-                            onClick = {
-                                scale = minScale
-                                offset = Offset.Zero
-                            },
-                            enabled = scale > minScale
-                        ) {
-                            Text(
-                                text = "${(scale * 100).toInt()}%",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                        IconButton(
-                            onClick = { updateScale(scale + zoomStep) },
-                            enabled = scale < maxScale,
-                            modifier = Modifier.size(IeltsSpacing.TouchTarget)
-                        ) {
-                            Icon(
-                                imageVector = IeltsIcons.ZoomIn,
-                                contentDescription = "Zoom in",
-                                modifier = Modifier.size(IeltsSpacing.ActionIcon)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 @Composable

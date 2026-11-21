@@ -7,6 +7,7 @@ import com.samuel.ielts.model.IeltsBook
 import com.samuel.ielts.model.PassageParagraph
 import com.samuel.ielts.model.PracticeTest
 import com.samuel.ielts.model.QuizQuestion
+import com.samuel.ielts.model.QuizQuestionGroup
 import com.samuel.ielts.model.QuizSectionBundle
 import com.samuel.ielts.model.QuizSkillMode
 import com.samuel.ielts.model.ReadingPassage
@@ -205,6 +206,7 @@ object SeedCatalogLoader {
         val section: String,
         val instructions: String,
         val wordLimit: String,
+        val imageAsset: String? = null,
         val questions: List<RawQuestion>
     )
 
@@ -243,6 +245,15 @@ object SeedCatalogLoader {
                 val section = cleanText(gObj.optString("section", ""))
                 val instructions = cleanText(gObj.optString("instructions", ""))
                 val wordLimit = cleanText(gObj.optString("word_limit", gObj.optString("wordLimit", "")))
+                val imageAsset = optNullableString(
+                    gObj,
+                    "imageAsset",
+                    "image_asset",
+                    "imagePath",
+                    "image_path",
+                    "chartImage",
+                    "chart_image"
+                )
                 val qsArr = gObj.optJSONArray("questions") ?: JSONArray()
                 val rawQs = mutableListOf<RawQuestion>()
                 for (qIdx in 0 until qsArr.length()) {
@@ -261,6 +272,7 @@ object SeedCatalogLoader {
                             section = section,
                             instructions = instructions,
                             wordLimit = wordLimit,
+                            imageAsset = imageAsset,
                             questions = rawQs
                         )
                     )
@@ -283,13 +295,23 @@ object SeedCatalogLoader {
             val listeningSections = (1..4).mapNotNull { secNum ->
                 val secGroups = listeningByNum[secNum].orEmpty()
                 if (secGroups.isEmpty()) return@mapNotNull null
-                val questions = secGroups.flatMapIndexed { gIdx, g ->
-                    convertGroupQuestions(
-                        prefix = "${id}_l${secNum}_g$gIdx",
+                val groups = secGroups.mapIndexed { gIdx, g ->
+                    val groupId = "${id}_l${secNum}_g$gIdx"
+                    val groupQuestions = convertGroupQuestions(
+                        prefix = groupId,
                         sectionHint = "Section $secNum",
                         group = g
+                    ).sortedBy { it.number }
+                    QuizQuestionGroup(
+                        id = groupId,
+                        instructions = g.instructions,
+                        wordLimit = g.wordLimit,
+                        imageAsset = g.imageAsset,
+                        questions = groupQuestions
                     )
-                }.sortedBy { it.number }
+                }.filter { it.questions.isNotEmpty() }
+                    .sortedBy { it.questions.first().number }
+                val questions = groups.flatMap { it.questions }
 
                 val qRange = questionRangeText(questions)
                 QuizSectionBundle(
@@ -298,9 +320,10 @@ object SeedCatalogLoader {
                     sectionNumber = secNum,
                     shortLabel = "Section $secNum",
                     title = "Listening Section $secNum ($qRange)",
-                    instructions = secGroups.firstOrNull()?.instructions.orEmpty(),
+                    instructions = groups.firstOrNull()?.instructions.orEmpty(),
                     passage = null,
-                    questions = questions
+                    questions = questions,
+                    groups = groups
                 )
             }
 
@@ -318,13 +341,23 @@ object SeedCatalogLoader {
                         )
                     )
                 )
-                val questions = secGroups.flatMapIndexed { gIdx, g ->
-                    convertGroupQuestions(
-                        prefix = "${id}_r${pNum}_g$gIdx",
+                val groups = secGroups.mapIndexed { gIdx, g ->
+                    val groupId = "${id}_r${pNum}_g$gIdx"
+                    val groupQuestions = convertGroupQuestions(
+                        prefix = groupId,
                         sectionHint = "Passage $pNum",
                         group = g
+                    ).sortedBy { it.number }
+                    QuizQuestionGroup(
+                        id = groupId,
+                        instructions = g.instructions,
+                        wordLimit = g.wordLimit,
+                        imageAsset = g.imageAsset,
+                        questions = groupQuestions
                     )
-                }.sortedBy { it.number }
+                }.filter { it.questions.isNotEmpty() }
+                    .sortedBy { it.questions.first().number }
+                val questions = groups.flatMap { it.questions }
 
                 if (questions.isEmpty()) return@mapNotNull null
                 val qRange = questionRangeText(questions)
@@ -334,9 +367,10 @@ object SeedCatalogLoader {
                     sectionNumber = pNum,
                     shortLabel = "Passage $pNum",
                     title = "Passage $pNum: ${passage.title} ($qRange)",
-                    instructions = secGroups.firstOrNull()?.instructions.orEmpty(),
+                    instructions = groups.firstOrNull()?.instructions.orEmpty(),
                     passage = passage,
-                    questions = questions
+                    questions = questions,
+                    groups = groups
                 )
             }
 
@@ -815,6 +849,15 @@ object SeedCatalogLoader {
         if (cleaned.isBlank()) return "Writing Task 1 and Task 2"
         val firstSentence = cleaned.substringBefore(".").trim()
         return if (firstSentence.length <= 72) firstSentence else firstSentence.take(69) + "..."
+    }
+
+    private fun optNullableString(obj: JSONObject, vararg keys: String): String? {
+        for (key in keys) {
+            if (!obj.has(key) || obj.isNull(key)) continue
+            val value = obj.optString(key, "").trim()
+            if (value.isNotEmpty()) return value
+        }
+        return null
     }
 
     private fun jsonStringList(array: JSONArray?): List<String> {
