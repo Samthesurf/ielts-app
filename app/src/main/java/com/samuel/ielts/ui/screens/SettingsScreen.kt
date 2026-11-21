@@ -13,9 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -136,9 +133,9 @@ fun SettingsScreen(
                             ) {
                                 Icon(
                                     imageVector = if (apiKeyVisible) {
-                                        IeltsIcons.VisibilityOff
+                                        IeltsIcons.HideKey
                                     } else {
-                                        IeltsIcons.Visibility
+                                        IeltsIcons.ShowKey
                                     },
                                     contentDescription = if (apiKeyVisible) "Hide API key" else "Show API key",
                                     modifier = Modifier.size(IeltsSpacing.ActionIcon)
@@ -252,7 +249,7 @@ private fun SettingsConnectionResultCard(
                     horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.CheckCircle,
+                        imageVector = IeltsIcons.TestConnectionCheck,
                         contentDescription = "Connection succeeded",
                         tint = SuccessGreen,
                         modifier = Modifier.size(IeltsSpacing.ActionIcon)
@@ -290,7 +287,7 @@ private fun SettingsConnectionResultCard(
                     horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Warning,
+                        imageVector = IeltsIcons.OfflineWarning,
                         contentDescription = "Connection failed warning",
                         tint = ErrorRed,
                         modifier = Modifier.size(IeltsSpacing.ActionIcon)

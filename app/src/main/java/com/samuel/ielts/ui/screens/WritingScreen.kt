@@ -16,10 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -57,6 +53,7 @@ import com.samuel.ielts.model.InlineComment
 import com.samuel.ielts.model.WritingCriterion
 import com.samuel.ielts.model.WritingTaskData
 import com.samuel.ielts.model.WritingTaskType
+import com.samuel.ielts.ui.components.IeltsIcons
 import com.samuel.ielts.ui.theme.IeltsSpacing
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -434,11 +431,26 @@ fun WritingScreen(
                     modifier = Modifier.padding(14.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(
-                        text = currentTaskData.taskType.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                    ) {
+                        Icon(
+                            imageVector = if (currentTaskData.taskType == WritingTaskType.TASK_1) {
+                                IeltsIcons.WritingTask1
+                            } else {
+                                IeltsIcons.WritingTask2
+                            },
+                            contentDescription = currentTaskData.taskType.shortLabel,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                        )
+                        Text(
+                            text = currentTaskData.taskType.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     Text(
                         text = currentTaskData.prompt,
                         style = MaterialTheme.typography.bodyMedium,
@@ -581,7 +593,7 @@ private fun WritingMarkErrorCard(
                 verticalAlignment = Alignment.Top
             ) {
                 Icon(
-                    imageVector = Icons.Default.Warning,
+                    imageVector = IeltsIcons.OfflineWarning,
                     contentDescription = "Marking error warning",
                     tint = ErrorRed,
                     modifier = Modifier.size(IeltsSpacing.ActionIcon)
@@ -604,6 +616,12 @@ private fun WritingMarkErrorCard(
                 onClick = onRetry,
                 enabled = retryEnabled
             ) {
+                Icon(
+                    imageVector = IeltsIcons.ErrorRetry,
+                    contentDescription = "Retry marking",
+                    modifier = Modifier.size(IeltsSpacing.SmallIcon)
+                )
+                Spacer(modifier = Modifier.width(IeltsSpacing.Xs))
                 Text("Retry")
             }
         }
@@ -687,7 +705,7 @@ private fun WordCountWarningBanner(
             verticalAlignment = Alignment.Top
         ) {
             Icon(
-                imageVector = Icons.Default.Warning,
+                imageVector = IeltsIcons.Warning,
                 contentDescription = "Word count warning",
                 tint = WarningAmber,
                 modifier = Modifier.size(IeltsSpacing.ActionIcon)
@@ -972,9 +990,9 @@ private fun Band75RewriteCollapsibleCard(
                 ) {
                     Icon(
                         imageVector = if (expanded) {
-                            Icons.Default.KeyboardArrowUp
+                            IeltsIcons.ExpandLess
                         } else {
-                            Icons.Default.KeyboardArrowDown
+                            IeltsIcons.ExpandMore
                         },
                         contentDescription = if (expanded) "Collapse Band 7.5 rewrite" else "Expand Band 7.5 rewrite",
                         tint = MaterialTheme.colorScheme.primary,

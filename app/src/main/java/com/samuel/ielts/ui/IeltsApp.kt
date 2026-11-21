@@ -17,9 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -118,12 +115,12 @@ private data class NavDestination(
 )
 
 private val TopLevelDestinations = listOf(
-    NavDestination(IeltsRoutes.LIBRARY, "Library", IeltsIcons.MenuBook),
-    NavDestination(IeltsRoutes.QUIZ, "Quiz", IeltsIcons.QuizCheck),
-    NavDestination(IeltsRoutes.WRITING, "Writing", Icons.Default.Edit),
-    NavDestination(IeltsRoutes.SPEAKING, "Speaking", IeltsIcons.Mic),
-    NavDestination(IeltsRoutes.PROGRESS, "Progress", IeltsIcons.TrendingUp),
-    NavDestination(IeltsRoutes.SETTINGS, "Settings", Icons.Default.Settings)
+    NavDestination(IeltsRoutes.LIBRARY, "Library", IeltsIcons.Library),
+    NavDestination(IeltsRoutes.QUIZ, "Quiz", IeltsIcons.Quiz),
+    NavDestination(IeltsRoutes.WRITING, "Writing", IeltsIcons.Writing),
+    NavDestination(IeltsRoutes.SPEAKING, "Speaking", IeltsIcons.Speaking),
+    NavDestination(IeltsRoutes.PROGRESS, "Progress", IeltsIcons.Progress),
+    NavDestination(IeltsRoutes.SETTINGS, "Settings", IeltsIcons.Settings)
 )
 
 @Composable

@@ -21,12 +21,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -53,6 +47,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -68,6 +63,7 @@ import com.samuel.ielts.model.QuizSkillMode
 import com.samuel.ielts.model.ReadingPassage
 import com.samuel.ielts.model.TfngOption
 import com.samuel.ielts.model.YnngOption
+import com.samuel.ielts.ui.components.IeltsIcons
 import com.samuel.ielts.ui.theme.IeltsSpacing
 import kotlinx.coroutines.launch
 
@@ -408,7 +404,7 @@ private fun LockedQuizPlaceholder(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Lock,
+                    imageVector = IeltsIcons.EmptyNoSeeds,
                     contentDescription = "Locked",
                     tint = LockedSlate,
                     modifier = Modifier.size(IeltsSpacing.HeroIcon)
@@ -520,9 +516,9 @@ private fun PassagePane(
                     ) {
                         Icon(
                             imageVector = if (expanded) {
-                                Icons.Default.KeyboardArrowUp
+                                IeltsIcons.ExpandLess
                             } else {
-                                Icons.Default.KeyboardArrowDown
+                                IeltsIcons.ExpandMore
                             },
                             contentDescription = if (expanded) "Collapse passage" else "Expand passage",
                             tint = MaterialTheme.colorScheme.primary,
@@ -644,7 +640,7 @@ private fun ResultBanner(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.CheckCircle,
+                    imageVector = IeltsIcons.Completed,
                     contentDescription = "Quiz score checked",
                     tint = SuccessGreen,
                     modifier = Modifier.size(IeltsSpacing.FeatureIcon)
@@ -696,6 +692,7 @@ private fun ResultBanner(
 private fun QuestionHeader(
     number: Int,
     typeLabel: String,
+    typeIcon: ImageVector,
     paragraphHint: String
 ) {
     Row(
@@ -703,12 +700,23 @@ private fun QuestionHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "Question $number ($typeLabel)",
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = typeIcon,
+                contentDescription = typeLabel,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(IeltsSpacing.SmallIcon)
+            )
+            Text(
+                text = "Question $number ($typeLabel)",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
         Text(
             text = paragraphHint,
             style = MaterialTheme.typography.labelSmall,
@@ -741,6 +749,7 @@ private fun McqQuestionCard(
             QuestionHeader(
                 number = question.number,
                 typeLabel = if (isMulti) "MCQ - Pick ${question.requiredSelections}" else "MCQ",
+                typeIcon = IeltsIcons.QuizMcq,
                 paragraphHint = question.paragraphHint
             )
 
@@ -834,6 +843,7 @@ private fun TfngQuestionCard(
             QuestionHeader(
                 number = question.number,
                 typeLabel = "T/F/NG",
+                typeIcon = IeltsIcons.QuizTfng,
                 paragraphHint = question.paragraphHint
             )
             Text(
@@ -907,6 +917,7 @@ private fun YnngQuestionCard(
             QuestionHeader(
                 number = question.number,
                 typeLabel = "Y/N/NG",
+                typeIcon = IeltsIcons.QuizYnng,
                 paragraphHint = question.paragraphHint
             )
             Text(
@@ -982,6 +993,7 @@ private fun FillBlankQuestionCard(
             QuestionHeader(
                 number = question.number,
                 typeLabel = "Fill-Blank",
+                typeIcon = IeltsIcons.QuizFillBlank,
                 paragraphHint = question.paragraphHint
             )
 
@@ -1030,7 +1042,7 @@ private fun FillBlankQuestionCard(
                     horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Warning,
+                        imageVector = IeltsIcons.Warning,
                         contentDescription = "Word limit warning",
                         tint = WarningAmber,
                         modifier = Modifier.size(IeltsSpacing.ActionIcon)

@@ -10,9 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -81,7 +78,7 @@ fun StreakFlameTile(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = IeltsIcons.Whatshot,
+                        imageVector = IeltsIcons.StreakFlame,
                         contentDescription = "Daily study streak flame",
                         tint = if (snapshot.currentStreakDays > 0) FlameOrange else FlameOrange.copy(alpha = 0.55f),
                         modifier = Modifier.size(IeltsSpacing.FeatureIcon)
@@ -158,7 +155,7 @@ fun NewBestBandBanner(
             horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
         ) {
             Icon(
-                imageVector = IeltsIcons.Trophy,
+                imageVector = IeltsIcons.TrophyBestBand,
                 contentDescription = "New best band trophy",
                 tint = SuccessGreen,
                 modifier = Modifier.size(IeltsSpacing.FeatureIcon)
@@ -184,7 +181,7 @@ fun NewBestBandBanner(
                 modifier = Modifier.size(IeltsSpacing.TouchTarget)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Close,
+                    imageVector = IeltsIcons.Close,
                     contentDescription = "Dismiss celebration banner",
                     tint = SuccessGreen,
                     modifier = Modifier.size(IeltsSpacing.ActionIcon)
@@ -337,7 +334,7 @@ private fun NextStepCard(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = IeltsIcons.ArrowForward,
+                        imageVector = IeltsIcons.NextStepArrow,
                         contentDescription = step.actionLabel,
                         tint = accent,
                         modifier = Modifier.size(IeltsSpacing.ActionIcon)
@@ -349,10 +346,10 @@ private fun NextStepCard(
 }
 
 private fun skillIconFor(skill: IeltsSkill): ImageVector = when (skill) {
-    IeltsSkill.LISTENING -> IeltsIcons.Headphones
-    IeltsSkill.READING -> IeltsIcons.MenuBook
-    IeltsSkill.WRITING -> Icons.Default.Edit
-    IeltsSkill.SPEAKING -> IeltsIcons.Mic
+    IeltsSkill.LISTENING -> IeltsIcons.Listening
+    IeltsSkill.READING -> IeltsIcons.Reading
+    IeltsSkill.WRITING -> IeltsIcons.Writing
+    IeltsSkill.SPEAKING -> IeltsIcons.Speaking
 }
 
 private fun skillAccentColor(skill: IeltsSkill): Color = when (skill) {

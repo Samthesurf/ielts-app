@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -32,6 +30,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.samuel.ielts.model.IeltsScoring
@@ -82,7 +81,7 @@ fun SpeakingPracticeScreen(
                         horizontalArrangement = Arrangement.Center
                     ) {
                         Icon(
-                            imageVector = IeltsIcons.Mic,
+                            imageVector = IeltsIcons.Speaking,
                             contentDescription = "Speaking practice microphone",
                             tint = BrandTeal,
                             modifier = Modifier.size(IeltsSpacing.ActionIcon)
@@ -141,7 +140,7 @@ fun SpeakingPracticeScreen(
                         horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.CheckCircle,
+                            imageVector = IeltsIcons.Completed,
                             contentDescription = "Speaking band saved",
                             tint = SuccessGreen,
                             modifier = Modifier.size(IeltsSpacing.ActionIcon)
@@ -160,6 +159,7 @@ fun SpeakingPracticeScreen(
         item {
             SpeakingPartCard(
                 partBadge = "Part 1",
+                partIcon = IeltsIcons.SpeakingPart1,
                 title = "Introduction and Interview",
                 body = speakingData.part1
             )
@@ -168,6 +168,7 @@ fun SpeakingPracticeScreen(
         item {
             SpeakingPartCard(
                 partBadge = "Part 2",
+                partIcon = IeltsIcons.SpeakingPart2,
                 title = "Individual Long Turn (Cue Card)",
                 body = speakingData.part2
             )
@@ -176,6 +177,7 @@ fun SpeakingPracticeScreen(
         item {
             SpeakingPartCard(
                 partBadge = "Part 3",
+                partIcon = IeltsIcons.SpeakingPart3,
                 title = "Two-Way Discussion",
                 body = speakingData.part3
             )
@@ -245,6 +247,7 @@ fun SpeakingPracticeScreen(
 @Composable
 private fun SpeakingPartCard(
     partBadge: String,
+    partIcon: ImageVector,
     title: String,
     body: String
 ) {
@@ -262,6 +265,12 @@ private fun SpeakingPartCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
             ) {
+                Icon(
+                    imageVector = partIcon,
+                    contentDescription = partBadge,
+                    tint = BrandTeal,
+                    modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                )
                 Surface(
                     color = BrandTealSoft,
                     shape = MaterialTheme.shapes.small

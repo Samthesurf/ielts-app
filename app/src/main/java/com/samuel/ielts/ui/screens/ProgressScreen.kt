@@ -12,11 +12,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -34,6 +36,7 @@ import com.samuel.ielts.model.QuestionTypeAccuracy
 import com.samuel.ielts.model.SkillProgress
 import com.samuel.ielts.model.StudyProgressSnapshot
 import com.samuel.ielts.model.TestProgressRecord
+import com.samuel.ielts.ui.components.IeltsIcons
 import com.samuel.ielts.ui.components.NextStepCardsSection
 import com.samuel.ielts.ui.components.StreakFlameTile
 import com.samuel.ielts.ui.theme.IeltsSpacing
@@ -187,12 +190,23 @@ private fun OverallProgressSummaryCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (bestOverallBand > 0.0) {
-                        Text(
-                            text = "Best recorded overall: Band ${IeltsScoring.formatBand(bestOverallBand)}",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = BrandTeal
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
+                        ) {
+                            Icon(
+                                imageVector = IeltsIcons.TrophyBestBand,
+                                contentDescription = "Best overall band trophy",
+                                tint = BrandTeal,
+                                modifier = Modifier.size(IeltsSpacing.SmallIcon)
+                            )
+                            Text(
+                                text = "Best recorded overall: Band ${IeltsScoring.formatBand(bestOverallBand)}",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = BrandTeal
+                            )
+                        }
                     }
                 }
                 Text(
@@ -420,11 +434,22 @@ private fun QuestionTypeAccuracyCard(
             }
 
             if (stats.all { it.total == 0 }) {
-                Text(
-                    text = "Check answers in Listening or Reading Quiz to track T/F/NG, Y/N/NG, MCQ, and Fill-Blank accuracy.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                ) {
+                    Icon(
+                        imageVector = IeltsIcons.EmptyNoAttempts,
+                        contentDescription = "No quiz attempts yet",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                    )
+                    Text(
+                        text = "Check answers in Listening or Reading Quiz to track T/F/NG, Y/N/NG, MCQ, and Fill-Blank accuracy.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             } else {
                 stats.forEach { entry ->
                     val isWeakest = weakestType != null && weakestType.category == entry.category
@@ -524,11 +549,22 @@ private fun SimpleHorizontalBarsCard(
             )
 
             if (items.isEmpty()) {
-                Text(
-                    text = emptyMessage,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                ) {
+                    Icon(
+                        imageVector = IeltsIcons.EmptyNoAttempts,
+                        contentDescription = "No attempts yet",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                    )
+                    Text(
+                        text = emptyMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             } else {
                 items.forEach { item ->
                     val fraction = (item.band / 9.0).toFloat().coerceIn(0f, 1f)
@@ -594,11 +630,22 @@ private fun SimpleVerticalBarsCard(
             )
 
             if (records.isEmpty()) {
-                Text(
-                    text = "No completed tests yet. Submit a quiz, writing draft, or speaking log to chart recent bands.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Sm)
+                ) {
+                    Icon(
+                        imageVector = IeltsIcons.EmptyNoAttempts,
+                        contentDescription = "No completed tests yet",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(IeltsSpacing.ActionIcon)
+                    )
+                    Text(
+                        text = "No completed tests yet. Submit a quiz, writing draft, or speaking log to chart recent bands.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             } else {
                 Row(
                     modifier = Modifier

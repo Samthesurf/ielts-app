@@ -17,10 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -184,7 +180,7 @@ private fun BookSectionHeader(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                imageVector = if (seededSections == 0) Icons.Default.Lock else IeltsIcons.MenuBook,
+                imageVector = if (seededSections == 0) IeltsIcons.EmptyNoSeeds else IeltsIcons.Library,
                 contentDescription = if (seededSections == 0) "${book.title} locked" else "${book.title} available",
                 tint = if (seededSections == 0) LockedSlate else MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(IeltsSpacing.ActionIcon)
@@ -270,10 +266,10 @@ private fun PracticeTestCard(
                                 horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Lock,
+                                    imageVector = IeltsIcons.EmptyNoSeeds,
                                     contentDescription = "Locked",
                                     tint = LockedSlate,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(IeltsSpacing.SmallIcon)
                                 )
                                 Text(
                                     text = "Seed missing",
@@ -294,10 +290,10 @@ private fun PracticeTestCard(
                                 horizontalArrangement = Arrangement.spacedBy(IeltsSpacing.Xs)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.CheckCircle,
+                                    imageVector = IeltsIcons.Completed,
                                     contentDescription = "Completed",
                                     tint = SuccessGreen,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(IeltsSpacing.SmallIcon)
                                 )
                                 Text(
                                     text = "Done",
@@ -486,9 +482,9 @@ private fun SkillStatusTile(
             Spacer(modifier = Modifier.width(IeltsSpacing.Xs))
             Icon(
                 imageVector = when (state.status) {
-                    SectionStatus.LOCKED -> Icons.Default.Lock
-                    SectionStatus.AVAILABLE -> Icons.Default.PlayArrow
-                    SectionStatus.COMPLETED -> Icons.Default.CheckCircle
+                    SectionStatus.LOCKED -> IeltsIcons.EmptyNoSeeds
+                    SectionStatus.AVAILABLE -> IeltsIcons.PlayAudio
+                    SectionStatus.COMPLETED -> IeltsIcons.Completed
                 },
                 contentDescription = "${state.skill.label} ${state.status.label}",
                 tint = accentColor,

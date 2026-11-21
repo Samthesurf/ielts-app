@@ -15,10 +15,11 @@ object IeltsSpacing {
     val Lg = 24.dp
     val Xl = 32.dp
     val TouchTarget = 48.dp
-    val NavIcon = 32.dp
-    val ActionIcon = 32.dp
-    val FeatureIcon = 36.dp
-    val HeroIcon = 40.dp
+    val SmallIcon = 16.dp
+    val NavIcon = 24.dp
+    val ActionIcon = 20.dp
+    val FeatureIcon = 24.dp
+    val HeroIcon = 24.dp
 }
 
 val IeltsShapes = Shapes(
