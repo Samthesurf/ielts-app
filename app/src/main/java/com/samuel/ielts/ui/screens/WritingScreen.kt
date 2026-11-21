@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,17 +23,21 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -44,11 +49,227 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.samuel.ielts.data.Attempt
 import com.samuel.ielts.model.CriterionScore
 import com.samuel.ielts.model.IeltsScoring
 import com.samuel.ielts.model.InlineComment
+import com.samuel.ielts.model.WritingCriterion
 import com.samuel.ielts.model.WritingTaskData
 import com.samuel.ielts.model.WritingTaskType
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
+import java.util.Locale
+
+data class MarkResult(
+    val ta_tr: Double,
+    val cc: Double,
+    val lr: Double,
+    val gra: Double,
+    val overall: Double,
+    val comments: List<InlineComment>,
+    val rewrite75: String,
+    val model8: String,
+    val rawJson: String,
+    val feedback: List<String> = emptyList(),
+    val wordCount: Int = 0,
+    val underLength: Boolean = false
+)
+
+class ParseError(message: String) : Exception(message)
+
+fun parseWritingMarkJson(rawJson: String): MarkResult {
+    val trimmed = rawJson.trim()
+    if (trimmed.isEmpty()) {
+        throw ParseError("Marker returned an empty response.")
+    }
+
+    val root = try {
+        JSONObject(trimmed)
+    } catch (e: JSONException) {
+        throw ParseError("Marker response is not valid JSON.")
+    }
+
+    val task = requireIntKey(root, "task")
+    if (task != 1 && task != 2) {
+        throw ParseError("Invalid value for key task: expected 1 or 2.")
+    }
+
+    val firstKey = if (task == 1) "TA" else "TR"
+    val taTr = requireDoubleKey(root, firstKey)
+    val cc = requireDoubleKey(root, "CC")
+    val lr = requireDoubleKey(root, "LR")
+    val gra = requireDoubleKey(root, "GRA")
+    val overall = requireDoubleKey(root, "overall")
+    val wordCount = requireIntKey(root, "wordCount")
+    val underLength = requireBooleanKey(root, "underLength")
+
+    val commentsArray = requireArrayKey(root, "comments")
+    val comments = mutableListOf<InlineComment>()
+    for (index in 0 until commentsArray.length()) {
+        val item = try {
+            commentsArray.getJSONObject(index)
+        } catch (e: JSONException) {
+            throw ParseError("Invalid item in comments at index $index.")
+        }
+        val contextLabel = "comments[$index]"
+        val quote = requireStringKey(item, "quote", contextLabel)
+        val criterionRaw = requireStringKey(item, "criterion", contextLabel)
+        val issue = requireStringKey(item, "issue", contextLabel)
+        val rewrite = requireStringKey(item, "rewrite", contextLabel)
+
+        val criterion = when (criterionRaw.trim().uppercase(Locale.US)) {
+            "TA" -> WritingCriterion.TA
+            "TR" -> WritingCriterion.TR
+            "CC" -> WritingCriterion.CC
+            "LR" -> WritingCriterion.LR
+            "GRA" -> WritingCriterion.GRA
+            else -> throw ParseError("Invalid criterion in $contextLabel: $criterionRaw")
+        }
+
+        comments.add(
+            InlineComment(
+                id = index + 1,
+                excerpt = quote,
+                criterion = criterion,
+                note = issue,
+                suggestion = rewrite
+            )
+        )
+    }
+
+    val feedbackArray = requireArrayKey(root, "feedback")
+    val feedback = mutableListOf<String>()
+    for (index in 0 until feedbackArray.length()) {
+        val entry = feedbackArray.opt(index)
+        if (entry !is String) {
+            throw ParseError("Invalid item in feedback at index $index.")
+        }
+        feedback.add(entry)
+    }
+
+    val band75Rewrite = requireStringKey(root, "band75Rewrite")
+    val band8Model = requireStringKey(root, "band8Model")
+
+    return MarkResult(
+        ta_tr = IeltsScoring.roundToHalfBand(taTr),
+        cc = IeltsScoring.roundToHalfBand(cc),
+        lr = IeltsScoring.roundToHalfBand(lr),
+        gra = IeltsScoring.roundToHalfBand(gra),
+        overall = IeltsScoring.roundToHalfBand(overall),
+        comments = comments,
+        rewrite75 = band75Rewrite,
+        model8 = band8Model,
+        rawJson = trimmed,
+        feedback = feedback,
+        wordCount = wordCount,
+        underLength = underLength
+    )
+}
+
+private fun requireDoubleKey(obj: JSONObject, key: String, parent: String? = null): Double {
+    if (!obj.has(key) || obj.isNull(key)) {
+        throw ParseError(missingKeyMessage(key, parent))
+    }
+    val value = obj.get(key)
+    if (value !is Number) {
+        throw ParseError(invalidTypeMessage(key, "number", parent))
+    }
+    return value.toDouble()
+}
+
+private fun requireIntKey(obj: JSONObject, key: String, parent: String? = null): Int {
+    if (!obj.has(key) || obj.isNull(key)) {
+        throw ParseError(missingKeyMessage(key, parent))
+    }
+    val value = obj.get(key)
+    if (value !is Number) {
+        throw ParseError(invalidTypeMessage(key, "integer", parent))
+    }
+    return value.toInt()
+}
+
+private fun requireBooleanKey(obj: JSONObject, key: String, parent: String? = null): Boolean {
+    if (!obj.has(key) || obj.isNull(key)) {
+        throw ParseError(missingKeyMessage(key, parent))
+    }
+    val value = obj.get(key)
+    if (value !is Boolean) {
+        throw ParseError(invalidTypeMessage(key, "boolean", parent))
+    }
+    return value
+}
+
+private fun requireStringKey(obj: JSONObject, key: String, parent: String? = null): String {
+    if (!obj.has(key) || obj.isNull(key)) {
+        throw ParseError(missingKeyMessage(key, parent))
+    }
+    val value = obj.get(key)
+    if (value !is String) {
+        throw ParseError(invalidTypeMessage(key, "string", parent))
+    }
+    return value
+}
+
+private fun requireArrayKey(obj: JSONObject, key: String, parent: String? = null): JSONArray {
+    if (!obj.has(key) || obj.isNull(key)) {
+        throw ParseError(missingKeyMessage(key, parent))
+    }
+    val value = obj.get(key)
+    if (value !is JSONArray) {
+        throw ParseError(invalidTypeMessage(key, "array", parent))
+    }
+    return value
+}
+
+private fun missingKeyMessage(key: String, parent: String?): String {
+    return if (parent == null) {
+        "Missing required key: $key"
+    } else {
+        "Missing required key in $parent: $key"
+    }
+}
+
+private fun invalidTypeMessage(key: String, expectedType: String, parent: String?): String {
+    return if (parent == null) {
+        "Invalid type for key $key: expected $expectedType."
+    } else {
+        "Invalid type for key $key in $parent: expected $expectedType."
+    }
+}
+
+private fun MarkResult.toCriterionScores(taskType: WritingTaskType): List<CriterionScore> {
+    val firstCriterion = if (taskType == WritingTaskType.TASK_1) {
+        WritingCriterion.TA
+    } else {
+        WritingCriterion.TR
+    }
+    val summaries = feedback
+    return listOf(
+        CriterionScore(
+            criterion = firstCriterion,
+            band = ta_tr,
+            summary = summaries.getOrElse(0) { "${firstCriterion.fullName} band estimate." }
+        ),
+        CriterionScore(
+            criterion = WritingCriterion.CC,
+            band = cc,
+            summary = summaries.getOrElse(1) { "${WritingCriterion.CC.fullName} band estimate." }
+        ),
+        CriterionScore(
+            criterion = WritingCriterion.LR,
+            band = lr,
+            summary = summaries.getOrElse(2) { "${WritingCriterion.LR.fullName} band estimate." }
+        ),
+        CriterionScore(
+            criterion = WritingCriterion.GRA,
+            band = gra,
+            summary = summaries.getOrElse(3) { "${WritingCriterion.GRA.fullName} band estimate." }
+        )
+    )
+}
 
 @Composable
 fun WritingScreen(
@@ -56,23 +277,101 @@ fun WritingScreen(
     task1Data: WritingTaskData,
     task2Data: WritingTaskData,
     onOverallBandUpdated: (Double) -> Unit,
+    questionId: Long = 0L,
+    chartBase64: String? = null,
+    onMarkTask: suspend (taskNumber: Int, essay: String, chartBase64: String?) -> MarkResult = { _, _, _ ->
+        throw IllegalStateException("AI marker is not configured.")
+    },
+    onSaveAttempt: (Attempt) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val scope = rememberCoroutineScope()
+
     var activeTask by rememberSaveable { mutableStateOf(WritingTaskType.TASK_1) }
     var task1Draft by rememberSaveable(task1Data.prompt) { mutableStateOf(task1Data.initialDraft) }
     var task2Draft by rememberSaveable(task2Data.prompt) { mutableStateOf(task2Data.initialDraft) }
     var showFeedback by rememberSaveable { mutableStateOf(true) }
     var showBand75Rewrite by rememberSaveable { mutableStateOf(false) }
 
+    var task1MarkResult by remember(task1Data.prompt) { mutableStateOf<MarkResult?>(null) }
+    var task2MarkResult by remember(task2Data.prompt) { mutableStateOf<MarkResult?>(null) }
+    var isMarking by remember { mutableStateOf(false) }
+    var markError by remember { mutableStateOf<String?>(null) }
+
     val currentTaskData = if (activeTask == WritingTaskType.TASK_1) task1Data else task2Data
     val currentDraft = if (activeTask == WritingTaskType.TASK_1) task1Draft else task2Draft
+    val currentMarkResult = if (activeTask == WritingTaskType.TASK_1) task1MarkResult else task2MarkResult
+
     val wordCount = IeltsScoring.countWords(currentDraft)
     val minWords = activeTask.minWords
     val underWordWarning = wordCount < minWords
 
-    val task1Band = IeltsScoring.calculateTaskBand(task1Data.scores)
-    val task2Band = IeltsScoring.calculateTaskBand(task2Data.scores)
+    val task1Scores = task1MarkResult?.toCriterionScores(WritingTaskType.TASK_1) ?: task1Data.scores
+    val task2Scores = task2MarkResult?.toCriterionScores(WritingTaskType.TASK_2) ?: task2Data.scores
+    val task1Band = IeltsScoring.calculateTaskBand(task1Scores)
+    val task2Band = IeltsScoring.calculateTaskBand(task2Scores)
     val overallWritingBand = IeltsScoring.calculateWritingOverall(task1Band, task2Band)
+
+    val displayScores = if (activeTask == WritingTaskType.TASK_1) task1Scores else task2Scores
+    val displayComments = currentMarkResult?.comments ?: currentTaskData.inlineComments
+    val displayRewrite75 = currentMarkResult?.rewrite75 ?: currentTaskData.band75Rewrite
+    val displayModel8 = currentMarkResult?.model8 ?: currentTaskData.band8Model
+
+    fun triggerMark() {
+        if (isMarking) return
+        val taskToMark = activeTask
+        val taskNumber = if (taskToMark == WritingTaskType.TASK_1) 1 else 2
+        val essayToMark = if (taskToMark == WritingTaskType.TASK_1) task1Draft else task2Draft
+        // chartBase64 is used ONLY for Task 1 image_url payload.
+        val imagePayload = if (taskToMark == WritingTaskType.TASK_1) chartBase64 else null
+
+        isMarking = true
+        markError = null
+        scope.launch {
+            try {
+                val result = onMarkTask(taskNumber, essayToMark, imagePayload)
+                if (taskToMark == WritingTaskType.TASK_1) {
+                    task1MarkResult = result
+                } else {
+                    task2MarkResult = result
+                }
+                showFeedback = true
+
+                val nextTask1Scores = if (taskToMark == WritingTaskType.TASK_1) {
+                    result.toCriterionScores(WritingTaskType.TASK_1)
+                } else {
+                    task1Scores
+                }
+                val nextTask2Scores = if (taskToMark == WritingTaskType.TASK_2) {
+                    result.toCriterionScores(WritingTaskType.TASK_2)
+                } else {
+                    task2Scores
+                }
+                val nextOverall = IeltsScoring.calculateWritingOverall(
+                    task1Band = IeltsScoring.calculateTaskBand(nextTask1Scores),
+                    task2Band = IeltsScoring.calculateTaskBand(nextTask2Scores)
+                )
+                onOverallBandUpdated(nextOverall)
+                onSaveAttempt(
+                    Attempt(
+                        questionId = questionId,
+                        userAnswer = essayToMark,
+                        correct = result.overall >= 6.0,
+                        aiScoresJson = result.rawJson,
+                        createdAt = System.currentTimeMillis()
+                    )
+                )
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (e: ParseError) {
+                markError = e.message ?: "Could not parse marker response."
+            } catch (e: Throwable) {
+                markError = toFriendlyNetworkError(e)
+            } finally {
+                isMarking = false
+            }
+        }
+    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -110,7 +409,10 @@ fun WritingScreen(
                 WritingTaskType.entries.forEach { taskType ->
                     FilterChip(
                         selected = activeTask == taskType,
-                        onClick = { activeTask = taskType },
+                        onClick = {
+                            activeTask = taskType
+                            markError = null
+                        },
                         label = {
                             Text("${taskType.shortLabel} (${taskType.minWords}+ words)")
                         }
@@ -168,12 +470,20 @@ fun WritingScreen(
                             color = if (underWordWarning) WarningAmber else SuccessGreen
                         )
                         Button(
-                            onClick = {
-                                showFeedback = true
-                                onOverallBandUpdated(overallWritingBand)
-                            }
+                            onClick = { triggerMark() },
+                            enabled = !isMarking
                         ) {
-                            Text("Review Draft")
+                            if (isMarking) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Marking...")
+                            } else {
+                                Text("Review Draft")
+                            }
                         }
                     }
 
@@ -181,7 +491,7 @@ fun WritingScreen(
                         WordCountWarningBanner(
                             wordCount = wordCount,
                             minWords = minWords,
-                            firstCriterionName = activeTask.firstCriterionName
+                            firstCriterionName = "${activeTask.firstCriterionName} (${activeTask.firstCriterionCode})"
                         )
                     } else {
                         Surface(
@@ -202,34 +512,94 @@ fun WritingScreen(
             }
         }
 
+        val currentError = markError
+        if (currentError != null) {
+            item {
+                WritingMarkErrorCard(
+                    message = currentError,
+                    onRetry = { triggerMark() },
+                    retryEnabled = !isMarking
+                )
+            }
+        }
+
         if (showFeedback) {
             item {
                 FourScoreBarsCard(
                     taskType = currentTaskData.taskType,
-                    scores = currentTaskData.scores,
-                    taskBand = IeltsScoring.calculateTaskBand(currentTaskData.scores)
+                    scores = displayScores,
+                    taskBand = IeltsScoring.calculateTaskBand(displayScores)
                 )
             }
 
             item {
                 InlineCommentsCard(
                     draftText = currentDraft,
-                    comments = currentTaskData.inlineComments
+                    comments = displayComments
                 )
             }
 
             item {
                 Band75RewriteCollapsibleCard(
                     expanded = showBand75Rewrite,
-                    rewriteText = currentTaskData.band75Rewrite,
+                    rewriteText = displayRewrite75,
                     onToggle = { showBand75Rewrite = !showBand75Rewrite }
                 )
             }
 
             item {
                 Band8ModelCard(
-                    modelText = currentTaskData.band8Model
+                    modelText = displayModel8
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WritingMarkErrorCard(
+    message: String,
+    onRetry: () -> Unit,
+    retryEnabled: Boolean
+) {
+    Surface(
+        color = ErrorRedBg,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.4f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = ErrorRed
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "Could not mark draft",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = ErrorRed
+                    )
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ErrorRed
+                    )
+                }
+            }
+            OutlinedButton(
+                onClick = onRetry,
+                enabled = retryEnabled
+            ) {
+                Text("Retry")
             }
         }
     }
