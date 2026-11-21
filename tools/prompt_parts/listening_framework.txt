@@ -1,0 +1,95 @@
+## Examiner framework (app marking rules)
+
+### Question types by section
+Section 1 (conversation, everyday): form completion, table completion.
+Spelling of names, numbers, dates, prices. Section 2 (monologue,
+everyday): multiple choice, matching, map or plan labelling. Section 3
+(conversation, academic): multiple choice, matching, sentence completion.
+Section 4 (lecture, academic): note completion, sentence completion,
+summary completion, one word only in most cases.
+
+### Error taxonomy (every wrong answer gets exactly one tag)
+spelling: the word was heard but misspelt, including double letters
+(accommodation, necessary), silent letters (knife, receipt), and
+ie/ei words. plural: singular answered for plural or the reverse;
+articles and uncountable nouns (information, advice, furniture take no
+plural). number: figures misheard (30 vs 13, 50 vs 15), zeros in
+thousands, decimal points, phone digit groups. date-time: day/month
+order, 12-hour versus 24-hour, "fortnight", "quarter to". homophone:
+their/there, two/too, break/brake, course/coarse. word-limit: answer
+over the stated limit (ONE WORD ONLY, NO MORE THAN TWO WORDS); extra
+articles and prepositions break the limit. distraction: the speaker
+mentions an option then rejects it ("we first thought X, but actually
+Y"); the correction, marked by but, however, actually, is the answer.
+signpost-miss: question location lost after a topic shift ("moving on
+to", "next we have"); answer written against the wrong question.
+grammar-misfit: completion answer breaks the sentence grammar (needs a
+noun, gives an adjective; needs past tense, gives infinitive).
+speed-loss: Section 4 density, answer skipped while writing the
+previous one, two answers collapse into one. unit-slip: pounds versus
+pence, kilometres versus metres, percentage sign dropped.
+
+### Prediction technique
+Before each set, read ahead during the pause: underline the question
+words, guess the answer kind (a number, a place, a name, a noun phrase).
+In completion tasks the words around the gap fix the grammar, so a
+wrong part of speech is always wrong even if it sounds right. In
+multiple choice, cross out options the speaker never paraphrases and
+distrust any option that repeats recording words exactly; correct
+answers are paraphrased, traps echo words.
+
+### Map and plan labelling bank
+Know these cold: opposite, adjacent to, next to, at the top/bottom of,
+on the corner of, facing, behind, in front of, to the left/right of,
+alongside, at the end of the corridor, on the first/second floor,
+entrance, reception, corridor, junction, roundabout, car park. When the
+speaker walks a route, track turns ("take the first left") rather than
+place names.
+
+### Number and letter drills
+Teen versus ten stress (THIRteen vs THIRty). Alphabet letters that
+collide: A/H/J/K, B/D/E/G/P/T/V/Z, M/N, C/G, I/Y. Postcodes and flight
+numbers are read in groups; write exactly what you hear. Money: "a ten
+pound note", "fifty p" (pence), "two thirty" (time or price by context).
+Dates: "the 15th of March" or "March 15th"; ordinal endings matter.
+
+### Spelling watch list for Section 1
+Days, months, common names with variants (Smith/Smyth, Brown/Browne),
+hotel, station, library, museum, garden, avenue, street, road, bridge,
+centre/center (accept either, see normaliser), telephone, mobile,
+passport, luggage, kitchen, balcony, fridge, cooker, rent, deposit,
+timetable,31 worksheet, questionnaire (rare, copy letter by letter).
+
+### Dictation procedure (your core training output)
+For spelling and homophone errors: 1. Play the sentence at full speed
+once, write it whole. 2. Play again in short chunks, fill gaps. 3. Read
+your sentence aloud and check grammar fit. 4. Compare with the script,
+mark each wrong letter. 5. Write the correct word five times and use it
+in a sentence of your own. For distraction errors: replay the turn and
+name the rejection word (but, however, actually). For signpost errors:
+replay and list the topic-shift phrases. Every analysis ends with one
+dictation task built from the student own error sentences.
+
+## Output contract (strict JSON)
+{
+  "total": 10,
+  "correct": 7,
+  "bandEstimate": 6.0,
+  "items": [
+    {"q": 9, "type": "Table completion",
+     "student": "therty", "key": "30/thirty", "verdict": "wrong",
+     "evidence": "audioscript line or paraphrase where available",
+     "errorTag": "spelling",
+     "fix": "one sentence drill instruction"}
+  ],
+  "spellingTable": [{"wrong": "therty", "right": "thirty"}],
+  "weakestTag": "spelling",
+  "dictationTask": "numbered steps using the student own error sentences",
+  "trend": "improving | flat | slipping"
+}
+Band estimate maps raw score on a 40 item test: 39-40 is 9, 37-38 is
+8.5, 35-36 is 8, 32-34 is 7.5, 30-31 is 7, 26-29 is 6.5, 23-25 is 6,
+18-22 is 5.5, 16-17 is 5. Pro-rate for shorter drills and say the item
+count used. Accept listed alternates (a/b means either; UK/US spellings
+both pass; T/TRUE/F/FALSE/Y/YES/N/NO/NG all pass in letter or word
+form). Never mark a correct-format alternate wrong.

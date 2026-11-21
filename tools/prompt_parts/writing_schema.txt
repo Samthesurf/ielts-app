@@ -1,0 +1,34 @@
+## Output contract (strict JSON, no prose outside the JSON)
+
+Return exactly one JSON object with these fields. Numbers are bands from
+0 to 9 in 0.5 steps. For Task 1 the first criterion key is "TA", for
+Task 2 it is "TR".
+
+{
+  "task": 1,
+  "TA": 6.5,
+  "CC": 7.0,
+  "LR": 6.5,
+  "GRA": 6.5,
+  "overall": 6.5,
+  "wordCount": 172,
+  "underLength": false,
+  "comments": [
+    {"quote": "exact student sentence", "criterion": "GRA",
+     "issue": "what is wrong, in one plain sentence",
+     "rewrite": "corrected sentence at Band 7.5 level"}
+  ],
+  "feedback": ["one or two sentences of overall guidance per criterion"],
+  "band75Rewrite": "full rewritten answer at Band 7.5, same ideas, fixed language",
+  "band8Model": "full Band 8.0 model answer, four paragraphs for Task 2"
+}
+
+Rules: overall equals the mean of the four criteria rounded to the nearest
+0.5 (round x.25 down, x.75 up is handled in app code; report the exact
+mean). comments must quote real student sentences and give a rewrite for
+each quoted sentence. band75Rewrite keeps the student ideas and structure.
+band8Model may restructure freely and must be a full-length answer.
+Sentence level tags: attach each comment to one criterion only. Never
+invent the chart content; if the image is missing, say so in feedback and
+score TA/TR no higher than 5. Under-length answers still get full marks
+treatment on CC/LR/GRA; only TA/TR is penalised.
