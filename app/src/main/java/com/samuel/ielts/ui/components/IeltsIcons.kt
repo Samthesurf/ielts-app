@@ -40,6 +40,8 @@ import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.WarningAmber
+import androidx.compose.material.icons.rounded.ZoomIn
+import androidx.compose.material.icons.rounded.ZoomOut
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
@@ -96,4 +98,6 @@ object IeltsIcons {
     val Close: ImageVector get() = Icons.Rounded.Close
     val ExpandMore: ImageVector get() = Icons.Rounded.KeyboardArrowDown
     val ExpandLess: ImageVector get() = Icons.Rounded.KeyboardArrowUp
+    val ZoomIn: ImageVector get() = Icons.Rounded.ZoomIn
+    val ZoomOut: ImageVector get() = Icons.Rounded.ZoomOut
 }

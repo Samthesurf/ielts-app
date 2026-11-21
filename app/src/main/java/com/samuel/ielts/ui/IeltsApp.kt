@@ -422,6 +422,7 @@ fun IeltsApp(
                             },
                             questionId = activeWritingQuestionId,
                             chartBase64 = task1ChartBase64,
+                            chartCaptionLines = activeWritingBundle?.writingTask1ChartCaption.orEmpty(),
                             onMarkTask = { taskNumber, essay, chartBase64 ->
                                 val promptText = if (taskNumber == 1) task1Data.prompt else task2Data.prompt
                                 val result = requestWritingMark(

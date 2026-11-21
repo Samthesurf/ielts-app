@@ -26,6 +26,7 @@ data class SeededTestBundle(
     val listeningSections: List<QuizSectionBundle> = emptyList(),
     val readingSections: List<QuizSectionBundle> = emptyList(),
     val writingTask1: WritingTaskData? = null,
+    val writingTask1ChartCaption: List<String> = emptyList(),
     val writingTask2: WritingTaskData? = null,
     val speaking: SpeakingPromptData? = null
 )
@@ -146,6 +147,7 @@ object SeedCatalogLoader {
                         listeningSections = listeningSections,
                         readingSections = readingSections,
                         writingTask1 = wsData?.task1,
+                        writingTask1ChartCaption = wsData?.task1ChartCaption.orEmpty(),
                         writingTask2 = wsData?.task2,
                         speaking = wsData?.speaking
                     )
@@ -186,6 +188,7 @@ object SeedCatalogLoader {
 
     private data class ParsedWsTest(
         val task1: WritingTaskData?,
+        val task1ChartCaption: List<String>,
         val task2: WritingTaskData?,
         val speaking: SpeakingPromptData?,
         val writingSummary: String
@@ -363,6 +366,7 @@ object SeedCatalogLoader {
 
             val task1Prompt = cleanText(task1Obj?.optString("prompt", "").orEmpty())
             val chartImage = task1Obj?.optString("chartImage", "")?.trim()?.takeIf(String::isNotBlank)
+            val task1ChartCaption = jsonStringList(task1Obj?.optJSONArray("chartCaption")).map(::cleanText)
             val task2Prompt = cleanText(task2Obj?.optString("prompt", "").orEmpty())
 
             val task1 = if (task1Prompt.isNotBlank()) {
@@ -420,6 +424,7 @@ object SeedCatalogLoader {
             val summary = summarizeWritingTopic(task2Prompt.ifBlank { task1Prompt })
             result[testNo] = ParsedWsTest(
                 task1 = task1,
+                task1ChartCaption = task1ChartCaption,
                 task2 = task2,
                 speaking = speaking,
                 writingSummary = summary
