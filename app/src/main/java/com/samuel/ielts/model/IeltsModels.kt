@@ -119,6 +119,14 @@ data class ReadingPassage(
     val paragraphs: List<PassageParagraph>
 )
 
+data class QuizQuestionGroup(
+    val id: String,
+    val instructions: String = "",
+    val wordLimit: String = "",
+    val imageAsset: String? = null,
+    val questions: List<QuizQuestion> = emptyList()
+)
+
 data class QuizSectionBundle(
     val id: String,
     val skill: QuizSkillMode,
@@ -127,7 +135,8 @@ data class QuizSectionBundle(
     val title: String,
     val instructions: String = "",
     val passage: ReadingPassage? = null,
-    val questions: List<QuizQuestion> = emptyList()
+    val questions: List<QuizQuestion> = emptyList(),
+    val groups: List<QuizQuestionGroup> = emptyList()
 )
 
 sealed interface QuizQuestion {
