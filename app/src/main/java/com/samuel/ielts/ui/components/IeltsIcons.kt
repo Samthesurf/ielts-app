@@ -15,6 +15,8 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.CloudDone
 import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.EmojiEvents
+import androidx.compose.material.icons.rounded.FastForward
+import androidx.compose.material.icons.rounded.FastRewind
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.HourglassEmpty
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.rounded.LocalLibrary
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.QuestionAnswer
 import androidx.compose.material.icons.rounded.Quiz
@@ -94,6 +97,9 @@ object IeltsIcons {
     val Search: ImageVector get() = Icons.Rounded.Search
     val Timer: ImageVector get() = Icons.Rounded.Timer
     val PlayAudio: ImageVector get() = Icons.Rounded.PlayArrow
+    val PauseAudio: ImageVector get() = Icons.Rounded.Pause
+    val SeekBack: ImageVector get() = Icons.Rounded.FastRewind
+    val SeekForward: ImageVector get() = Icons.Rounded.FastForward
     val Completed: ImageVector get() = Icons.Rounded.CheckCircle
     val Close: ImageVector get() = Icons.Rounded.Close
     val ExpandMore: ImageVector get() = Icons.Rounded.KeyboardArrowDown

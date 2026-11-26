@@ -217,19 +217,33 @@ private fun PracticeTestRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Test ${test.testNumber}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = if (test.hasAnySeededSection) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    LockedSlate
-                },
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = "Test ${test.testNumber}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (test.hasAnySeededSection) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        LockedSlate
+                    },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (test.hasFullListeningAudio) {
+                    Text(
+                        text = "Full test with audio",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = BrandTeal,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -379,15 +393,37 @@ private fun SkillDetailRowCard(
                 tint = accentColor,
                 modifier = Modifier.size(IeltsSpacing.FeatureIcon)
             )
-            Text(
-                text = state.skill.label,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = if (isLocked) LockedSlate else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = state.skill.label,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isLocked) LockedSlate else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (!isLocked && state.subtitle.isNotBlank()) {
+                    Text(
+                        text = state.subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (state.subtitle == "Full test with audio") {
+                            BrandTeal
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        fontWeight = if (state.subtitle == "Full test with audio") {
+                            FontWeight.SemiBold
+                        } else {
+                            FontWeight.Normal
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
             Text(
                 text = statusText,
                 style = MaterialTheme.typography.labelLarge,

@@ -44,7 +44,8 @@ data class PracticeTest(
     val lastListeningBand: Double? = null,
     val lastReadingBand: Double? = null,
     val lastWritingBand: Double? = null,
-    val lastSpeakingBand: Double? = null
+    val lastSpeakingBand: Double? = null,
+    val hasFullListeningAudio: Boolean = false
 ) {
     val listeningCompleted: Boolean
         get() = listeningStatus == SectionStatus.COMPLETED
@@ -72,7 +73,11 @@ data class PracticeTest(
             skill = IeltsSkill.LISTENING,
             status = listeningStatus,
             lastBand = lastListeningBand,
-            subtitle = if (listeningStatus == SectionStatus.LOCKED) "Seed missing" else "S1 to S4"
+            subtitle = when {
+                listeningStatus == SectionStatus.LOCKED -> "Seed missing"
+                hasFullListeningAudio -> "Full test with audio"
+                else -> "S1 to S4"
+            }
         ),
         SkillSectionState(
             skill = IeltsSkill.READING,

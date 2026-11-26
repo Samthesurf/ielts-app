@@ -73,6 +73,7 @@ dependencies {
     implementation("com.google.crypto.tink:tink-android:1.12.0")
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("androidx.media3:media3-exoplayer:1.3.1")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("androidx.room:room-testing:2.6.1")

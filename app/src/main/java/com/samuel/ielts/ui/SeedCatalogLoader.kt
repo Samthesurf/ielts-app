@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Base64
 import com.samuel.ielts.model.CriterionScore
 import com.samuel.ielts.model.IeltsBook
+import com.samuel.ielts.model.ListeningAudioManifest
 import com.samuel.ielts.model.PassageParagraph
 import com.samuel.ielts.model.PracticeTest
 import com.samuel.ielts.model.QuizQuestion
@@ -80,10 +81,11 @@ object SeedCatalogLoader {
 
         IeltsBook.entries.forEach { book ->
             val codeLower = book.code.lowercase(Locale.US)
-            val lrFile = "$codeLower.json"
+            val lrFile = listOf("$codeLower.json", "${codeLower}_full.json")
+                .firstOrNull { it in availableSeedFiles }
             val wsFile = "${codeLower}_writing.json"
 
-            val lrByTestNo = if (lrFile in availableSeedFiles) {
+            val lrByTestNo = if (lrFile != null) {
                 parseLrSeedFile(readAssetText(context, "seed/$lrFile"), book)
             } else {
                 emptyMap()
@@ -117,9 +119,16 @@ object SeedCatalogLoader {
                     ?.takeIf(String::isNotBlank)
                     ?: if (hasWriting) "Writing Task 1 and Task 2" else "Not available yet"
 
+                val hasFullListeningAudio = hasListening &&
+                    ListeningAudioManifest.findAvailableTrack(context, book, testNo) != null
+
                 val listeningTitle = if (hasListening) {
                     val totalQ = listeningSections.sumOf { it.questions.size }
-                    "Sections 1 to 4 ($totalQ questions)"
+                    if (hasFullListeningAudio) {
+                        "Full test with audio ($totalQ questions)"
+                    } else {
+                        "Sections 1 to 4 ($totalQ questions)"
+                    }
                 } else {
                     "Not available yet"
                 }
@@ -139,7 +148,8 @@ object SeedCatalogLoader {
                     listeningStatus = if (hasListening) SectionStatus.AVAILABLE else SectionStatus.LOCKED,
                     readingStatus = if (hasReading) SectionStatus.AVAILABLE else SectionStatus.LOCKED,
                     writingStatus = if (hasWriting) SectionStatus.AVAILABLE else SectionStatus.LOCKED,
-                    speakingStatus = if (hasSpeaking) SectionStatus.AVAILABLE else SectionStatus.LOCKED
+                    speakingStatus = if (hasSpeaking) SectionStatus.AVAILABLE else SectionStatus.LOCKED,
+                    hasFullListeningAudio = hasFullListeningAudio
                 )
 
                 bundles.add(
@@ -614,7 +624,7 @@ object SeedCatalogLoader {
 
             val correctIndices = answerTokens.mapNotNull { token ->
                 labels.indexOfFirst { it.equals(token, ignoreCase = true) }.takeIf { it >= 0 }
-            }.toSet().ifEmpty { setOf(0) }
+            }.toSet()
 
             val requiredSelections = if (answerTokens.size > 1) {
                 answerTokens.size
@@ -635,7 +645,7 @@ object SeedCatalogLoader {
                 paragraphHint = hintSuffix,
                 options = texts,
                 optionLabels = labels,
-                correctIndex = correctIndices.first(),
+                correctIndex = correctIndices.firstOrNull() ?: -1,
                 correctIndices = correctIndices,
                 requiredSelections = requiredSelections,
                 instructions = group.instructions

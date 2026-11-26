@@ -1087,14 +1087,16 @@ private fun QuestionHeader(
 }
 
 @Composable
-private fun McqQuestionCard(
+internal fun McqQuestionCard(
     question: QuizQuestion.Mcq,
     selectedIndices: Set<Int>,
     checked: Boolean,
-    onToggleOption: (Int) -> Unit
+    onToggleOption: (Int) -> Unit,
+    isCorrectOverride: Boolean? = null,
+    interactive: Boolean = true
 ) {
     val isMulti = question.requiredSelections > 1
-    val isCorrect = selectedIndices == question.correctIndices
+    val isCorrect = isCorrectOverride ?: (selectedIndices == question.correctIndices)
     val overSelected = isMulti && selectedIndices.size > question.requiredSelections
 
     Card(
@@ -1134,19 +1136,21 @@ private fun McqQuestionCard(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onToggleOption(index) }
+                            .clickable(enabled = interactive) { onToggleOption(index) }
                             .padding(vertical = IeltsSpacing.Xs),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         if (isMulti) {
                             Checkbox(
                                 checked = isSelected,
-                                onCheckedChange = { onToggleOption(index) }
+                                onCheckedChange = { if (interactive) onToggleOption(index) },
+                                enabled = interactive
                             )
                         } else {
                             RadioButton(
                                 selected = isSelected,
-                                onClick = { onToggleOption(index) }
+                                onClick = { if (interactive) onToggleOption(index) },
+                                enabled = interactive
                             )
                         }
                         Spacer(modifier = Modifier.width(IeltsSpacing.Sm))
@@ -1176,13 +1180,15 @@ private fun McqQuestionCard(
 }
 
 @Composable
-private fun TfngQuestionCard(
+internal fun TfngQuestionCard(
     question: QuizQuestion.TrueFalseNotGiven,
     selectedOption: TfngOption?,
     checked: Boolean,
-    onSelect: (TfngOption) -> Unit
+    onSelect: (TfngOption) -> Unit,
+    isCorrectOverride: Boolean? = null,
+    interactive: Boolean = true
 ) {
-    val isCorrect = selectedOption == question.correctAnswer
+    val isCorrect = isCorrectOverride ?: (selectedOption == question.correctAnswer)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1214,7 +1220,7 @@ private fun TfngQuestionCard(
                     Surface(
                         modifier = Modifier
                             .weight(1f)
-                            .clickable { onSelect(option) },
+                            .clickable(enabled = interactive) { onSelect(option) },
                         shape = MaterialTheme.shapes.medium,
                         color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                         border = BorderStroke(
@@ -1249,13 +1255,15 @@ private fun TfngQuestionCard(
 }
 
 @Composable
-private fun YnngQuestionCard(
+internal fun YnngQuestionCard(
     question: QuizQuestion.YesNoNotGiven,
     selectedOption: YnngOption?,
     checked: Boolean,
-    onSelect: (YnngOption) -> Unit
+    onSelect: (YnngOption) -> Unit,
+    isCorrectOverride: Boolean? = null,
+    interactive: Boolean = true
 ) {
-    val isCorrect = selectedOption == question.correctAnswer
+    val isCorrect = isCorrectOverride ?: (selectedOption == question.correctAnswer)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1287,7 +1295,7 @@ private fun YnngQuestionCard(
                     Surface(
                         modifier = Modifier
                             .weight(1f)
-                            .clickable { onSelect(option) },
+                            .clickable(enabled = interactive) { onSelect(option) },
                         shape = MaterialTheme.shapes.medium,
                         color = if (selected) BrandTeal else MaterialTheme.colorScheme.surfaceVariant,
                         border = BorderStroke(
@@ -1322,15 +1330,17 @@ private fun YnngQuestionCard(
 }
 
 @Composable
-private fun FillBlankQuestionCard(
+internal fun FillBlankQuestionCard(
     question: QuizQuestion.FillBlank,
     answerText: String,
     checked: Boolean,
-    onValueChange: (String) -> Unit
+    onValueChange: (String) -> Unit,
+    isCorrectOverride: Boolean? = null,
+    interactive: Boolean = true
 ) {
     val wordCount = IeltsScoring.countWords(answerText)
     val overWordLimit = wordCount > question.maxWords
-    val isCorrect = isFillBlankCorrect(question, answerText)
+    val isCorrect = isCorrectOverride ?: isFillBlankCorrect(question, answerText)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1364,6 +1374,7 @@ private fun FillBlankQuestionCard(
             OutlinedTextField(
                 value = answerText,
                 onValueChange = onValueChange,
+                enabled = interactive,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 label = { Text("Your answer") }
@@ -1397,12 +1408,13 @@ private fun FillBlankQuestionCard(
             }
 
             if (checked) {
+                val keyDisplay = question.rawAnswerKey.ifBlank { question.acceptedAnswers.firstOrNull().orEmpty() }
                 AnswerFeedbackChip(
                     isCorrect = isCorrect,
                     message = if (isCorrect) {
-                        "Correct (${question.acceptedAnswers.firstOrNull().orEmpty()})"
+                        "Correct ($keyDisplay)"
                     } else {
-                        "Answer: ${question.rawAnswerKey.ifBlank { question.acceptedAnswers.firstOrNull().orEmpty() }}"
+                        "Answer: $keyDisplay"
                     }
                 )
             }

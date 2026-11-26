@@ -52,6 +52,7 @@ import com.samuel.ielts.data.IeltsDb
 import com.samuel.ielts.model.CriterionScore
 import com.samuel.ielts.model.IeltsScoring
 import com.samuel.ielts.model.IeltsSkill
+import com.samuel.ielts.model.ListeningAudioManifest
 import com.samuel.ielts.model.NextStepCardData
 import com.samuel.ielts.model.NextStepDestination
 import com.samuel.ielts.model.NextStepRecommender
@@ -75,6 +76,7 @@ import com.samuel.ielts.ui.components.NewBestBandBanner
 import com.samuel.ielts.ui.screens.DEFAULT_API_BASE_URL
 import com.samuel.ielts.ui.screens.DEFAULT_API_MODEL
 import com.samuel.ielts.ui.screens.LibraryScreen
+import com.samuel.ielts.ui.screens.ListeningTestScreen
 import com.samuel.ielts.ui.screens.MarkResult
 import com.samuel.ielts.ui.screens.ParseError
 import com.samuel.ielts.ui.screens.ProgressScreen
@@ -105,6 +107,7 @@ object IeltsRoutes {
     const val LIBRARY = "library"
     const val TEST_DETAIL = "test_detail"
     const val QUIZ = "quiz"
+    const val LISTENING_EXAM = "listening_exam"
     const val WRITING = "writing"
     const val SPEAKING = "speaking"
     const val PROGRESS = "progress"
@@ -286,18 +289,54 @@ fun IeltsApp(
         )
     }
 
+    fun openListeningForTest(test: PracticeTest) {
+        val bundle = catalog.bundlesById[test.id]
+        val hasQuestions = bundle?.listeningSections?.any { it.questions.isNotEmpty() } == true
+        val track = ListeningAudioManifest.findAvailableTrack(context, test.book, test.testNumber)
+        selectedQuizSkill = QuizSkillMode.LISTENING
+        if (hasQuestions && track != null) {
+            navigateTo(IeltsRoutes.LISTENING_EXAM)
+        } else {
+            navigateTo(IeltsRoutes.QUIZ)
+        }
+    }
+
+    fun handleQuizSubmitted(summary: QuizAttemptSummary) {
+        quizAttempts = quizAttempts + summary
+        val recordLabel = "${summary.book.code} T${summary.testNumber} ${if (summary.skill == QuizSkillMode.LISTENING) "L" else "R"}"
+        recentRecords = (recentRecords + TestProgressRecord(recordLabel, summary.band, summary.book)).takeLast(12)
+        val updatedTests = practiceTests.map { item ->
+            if (item.id == summary.testId) {
+                if (summary.skill == QuizSkillMode.LISTENING) {
+                    item.copy(
+                        listeningStatus = SectionStatus.COMPLETED,
+                        lastListeningBand = summary.band
+                    )
+                } else {
+                    item.copy(
+                        readingStatus = SectionStatus.COMPLETED,
+                        lastReadingBand = summary.band
+                    )
+                }
+            } else {
+                item
+            }
+        }
+        practiceTests = updatedTests
+        recordStudyAndCheckBest(updatedTests)
+    }
+
     fun handleNextStep(step: NextStepCardData) {
+        var resolvedTest = selectedTest
         step.targetTestId?.let { targetId ->
-            if (practiceTests.any { it.id == targetId }) {
-                selectedTestId = targetId
+            practiceTests.firstOrNull { it.id == targetId }?.let { target ->
+                selectedTestId = target.id
+                resolvedTest = target
             }
         }
         when (step.destination) {
             NextStepDestination.LIBRARY -> navigateTo(IeltsRoutes.LIBRARY)
-            NextStepDestination.QUIZ_LISTENING -> {
-                selectedQuizSkill = QuizSkillMode.LISTENING
-                navigateTo(IeltsRoutes.QUIZ)
-            }
+            NextStepDestination.QUIZ_LISTENING -> openListeningForTest(resolvedTest)
             NextStepDestination.QUIZ_READING -> {
                 selectedQuizSkill = QuizSkillMode.READING
                 navigateTo(IeltsRoutes.QUIZ)
@@ -344,10 +383,7 @@ fun IeltsApp(
                             onBack = ::navigateBack,
                             onOpenSkill = { skill ->
                                 when (skill) {
-                                    IeltsSkill.LISTENING -> {
-                                        selectedQuizSkill = QuizSkillMode.LISTENING
-                                        navigateTo(IeltsRoutes.QUIZ)
-                                    }
+                                    IeltsSkill.LISTENING -> openListeningForTest(selectedTest)
                                     IeltsSkill.READING -> {
                                         selectedQuizSkill = QuizSkillMode.READING
                                         navigateTo(IeltsRoutes.QUIZ)
@@ -360,6 +396,48 @@ fun IeltsApp(
                         )
                     }
 
+                    IeltsRoutes.LISTENING_EXAM -> {
+                        val listeningTrack = remember(selectedTest.book, selectedTest.testNumber) {
+                            ListeningAudioManifest.findAvailableTrack(
+                                context = context,
+                                book = selectedTest.book,
+                                testNumber = selectedTest.testNumber
+                            )
+                        }
+                        val listeningSections = selectedBundle?.listeningSections.orEmpty()
+                        if (listeningTrack != null && listeningSections.any { it.questions.isNotEmpty() }) {
+                            ListeningTestScreen(
+                                testId = selectedTest.id,
+                                book = selectedTest.book,
+                                testNumber = selectedTest.testNumber,
+                                testLabel = selectedTestLabel,
+                                track = listeningTrack,
+                                sections = listeningSections,
+                                onQuizSubmitted = ::handleQuizSubmitted,
+                                onBack = ::navigateBack,
+                                onOpenSectionDrill = {
+                                    selectedQuizSkill = QuizSkillMode.LISTENING
+                                    navigateTo(IeltsRoutes.QUIZ)
+                                },
+                                modifier = contentModifier
+                            )
+                        } else {
+                            QuizScreen(
+                                testId = selectedTest.id,
+                                book = selectedTest.book,
+                                testNumber = selectedTest.testNumber,
+                                testLabel = selectedTestLabel,
+                                activeSkill = QuizSkillMode.LISTENING,
+                                onSelectSkill = { selectedQuizSkill = it },
+                                listeningSections = listeningSections,
+                                readingSections = selectedBundle?.readingSections.orEmpty(),
+                                onQuizSubmitted = ::handleQuizSubmitted,
+                                onOpenLibrary = { navigateTo(IeltsRoutes.LIBRARY) },
+                                modifier = contentModifier
+                            )
+                        }
+                    }
+
                     IeltsRoutes.QUIZ -> {
                         QuizScreen(
                             testId = selectedTest.id,
@@ -370,30 +448,7 @@ fun IeltsApp(
                             onSelectSkill = { selectedQuizSkill = it },
                             listeningSections = selectedBundle?.listeningSections.orEmpty(),
                             readingSections = selectedBundle?.readingSections.orEmpty(),
-                            onQuizSubmitted = { summary ->
-                                quizAttempts = quizAttempts + summary
-                                val recordLabel = "${summary.book.code} T${summary.testNumber} ${if (summary.skill == QuizSkillMode.LISTENING) "L" else "R"}"
-                                recentRecords = (recentRecords + TestProgressRecord(recordLabel, summary.band, summary.book)).takeLast(12)
-                                val updatedTests = practiceTests.map { item ->
-                                    if (item.id == summary.testId) {
-                                        if (summary.skill == QuizSkillMode.LISTENING) {
-                                            item.copy(
-                                                listeningStatus = SectionStatus.COMPLETED,
-                                                lastListeningBand = summary.band
-                                            )
-                                        } else {
-                                            item.copy(
-                                                readingStatus = SectionStatus.COMPLETED,
-                                                lastReadingBand = summary.band
-                                            )
-                                        }
-                                    } else {
-                                        item
-                                    }
-                                }
-                                practiceTests = updatedTests
-                                recordStudyAndCheckBest(updatedTests)
-                            },
+                            onQuizSubmitted = ::handleQuizSubmitted,
                             onOpenLibrary = { navigateTo(IeltsRoutes.LIBRARY) },
                             modifier = contentModifier
                         )
@@ -574,7 +629,8 @@ private fun IeltsBottomNavigationBar(
         ) {
             destinations.forEach { destination ->
                 val isSelected = currentRoute == destination.route ||
-                    (currentRoute == IeltsRoutes.TEST_DETAIL && destination.route == IeltsRoutes.LIBRARY)
+                    (currentRoute == IeltsRoutes.TEST_DETAIL && destination.route == IeltsRoutes.LIBRARY) ||
+                    (currentRoute == IeltsRoutes.LISTENING_EXAM && destination.route == IeltsRoutes.QUIZ)
                 val contentColor = if (isSelected) {
                     MaterialTheme.colorScheme.primary
                 } else {
